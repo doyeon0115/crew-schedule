@@ -37,6 +37,7 @@
   td.name{font-weight:700;text-align:left;background:var(--card2);position:sticky;left:0;z-index:1}
   td.off{background:var(--off);color:#7ee2a6;border-color:var(--off-b)}
   td.work{background:var(--work);color:#f3a8c2;border-color:var(--work-b)}
+  td.work .hrs b{font-weight:400;opacity:.55;margin:0 1px}
   th.we{color:var(--warn)}
   td.we{box-shadow:inset 0 0 0 999px rgba(240,184,110,.06)}  /* 주말 열 살짝 강조 */
   /* calendar */
@@ -104,6 +105,21 @@
   .star{color:var(--accent2)}
   .save-state{font-size:11px;color:var(--muted);text-align:center;margin-top:4px;height:14px}
   small.note{color:var(--muted);font-size:11.5px;display:block;margin-top:8px;line-height:1.5}
+  /* ===== 입장 비밀번호 게이트 ===== */
+  #gate{position:fixed;inset:0;z-index:1000;background:var(--bg);display:flex;
+    align-items:center;justify-content:center;padding:20px}
+  #gate.hidden{display:none}
+  .gate-box{background:var(--card);border:1px solid var(--line);border-radius:16px;
+    padding:30px 22px;width:100%;max-width:300px;text-align:center}
+  .gate-emoji{font-size:34px}
+  .gate-box h2{color:var(--text);font-size:18px;margin:10px 0 2px}
+  .gate-box p{color:var(--muted);font-size:13px;margin:0 0 18px}
+  .gate-box input{width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);
+    background:var(--card2);color:var(--text);font-size:20px;text-align:center;
+    letter-spacing:6px;margin-bottom:10px;font-family:inherit}
+  .gate-box button{width:100%;padding:12px;border:0;border-radius:10px;background:var(--accent);
+    color:#0c1322;font-weight:700;font-size:15px;cursor:pointer}
+  .gate-err{color:#e06b6b;font-size:13px;height:18px;margin-top:8px}
   /* ===== 모바일(좁은 화면) 대응 ===== */
   @media (max-width:560px){
     header{padding:14px 12px 6px}
@@ -113,8 +129,11 @@
     .card{padding:11px;border-radius:12px}
     .tabs{gap:4px;padding:4px}
     .tabs button{font-size:12.5px;min-width:60px;padding:9px 3px}
-    table{min-width:0;font-size:12px}      /* 화면 폭에 맞춰 줄임 */
-    th,td{padding:6px 4px}
+    table{min-width:0;width:100%;font-size:11px}   /* 화면 폭에 맞춰 줄임 */
+    th,td{padding:5px 2px}
+    td.name,th:first-child{font-size:11.5px}
+    table .hrs{display:inline-flex;flex-direction:column;line-height:1.12}  /* 시간 위아래로 쌓아 칸 좁힘 */
+    table .hrs b{display:none}
     .dayrow{grid-template-columns:28px 50px minmax(0,1fr);gap:5px;font-size:12.5px}
     .times{min-width:0;gap:4px}                              /* 칸이 줄어들 수 있게 */
     .times input[type=time]{flex:1 1 0;min-width:0;width:100%;padding:6px 2px;font-size:12px}
@@ -130,6 +149,16 @@
 </style>
 </head>
 <body>
+<div id="gate">
+  <div class="gate-box">
+    <div class="gate-emoji">🔒</div>
+    <h2>우리끼리 스케줄</h2>
+    <p>비밀번호를 입력하세요</p>
+    <input id="gatePw" type="password" inputmode="numeric" placeholder="● ● ● ● ● ●" autocomplete="off">
+    <button id="gateBtn">입장하기</button>
+    <div id="gateErr" class="gate-err"></div>
+  </div>
+</div>
 <header>
   <h1>📅 우리끼리 스케줄</h1>
   <p>누가 언제 쉬는지 한눈에 보고, 다 같이 볼 시간을 찾아요</p>
@@ -149,7 +178,10 @@
     <div class="card">
       <h2>주간 스케줄 (초록 = 쉬는 날 / 분홍 = 근무)</h2>
       <div class="grid"><table id="weekTable"></table></div>
-      <small class="note">초록색일수록 약속 잡기 좋은 날이에요. 셀의 시간은 "근무 시간"이라 그 시간 빼고 만나면 돼요.</small>
+      <div class="row" style="margin-top:10px">
+        <button class="btn" id="dlImg">📷 이미지로 저장</button>
+      </div>
+      <small class="note">초록색일수록 약속 잡기 좋은 날이에요. 셀의 시간은 "근무 시간"이라 그 시간 빼고 만나면 돼요. "이미지로 저장"으로 단톡방에 바로 공유할 수 있어요.</small>
     </div>
   </section>
 
@@ -390,7 +422,7 @@ function renderWeek(){
       const we=i>=5?" we":"";
       h+= d.off
         ? `<td class="off${we}">휴무</td>`
-        : `<td class="work${we}">${shortT(d.start)}~${shortT(d.end)}</td>`;
+        : `<td class="work${we}"><span class="hrs">${shortT(d.start)}<b>~</b>${shortT(d.end)}</span></td>`;
     });
     h+="</tr>";
   }
@@ -509,6 +541,70 @@ document.getElementById("addPerson").onclick=()=>{
   persist(); render();
   document.querySelector('[data-tab=edit]').click();
 };
+
+/* ---------- 주간표 이미지로 저장 (canvas로 직접 그림 → PNG 다운로드) ---------- */
+function downloadWeekImage(){
+  const people=ids().map(id=>data.people[id]);
+  if(!people.length){ alert("저장할 스케줄이 없어요."); return; }
+  const S=2;                                   // 선명도(레티나)
+  const nameW=92, dayW=80, titleH=54, headH=36, rowH=44;
+  const W=nameW+dayW*7, H=titleH+headH+rowH*people.length;
+  const cv=document.createElement("canvas");
+  cv.width=W*S; cv.height=H*S;
+  const ctx=cv.getContext("2d");
+  ctx.scale(S,S);
+  const FONT='-apple-system,"Malgun Gothic","Apple SD Gothic Neo",sans-serif';
+  const clip=(s,n)=>{s=String(s);return s.length>n?s.slice(0,n)+"…":s;};
+  const box=(x,y,w,h,bg,we)=>{ ctx.fillStyle=bg; ctx.fillRect(x,y,w,h);
+    if(we){ctx.fillStyle="rgba(240,184,110,.08)";ctx.fillRect(x,y,w,h);}
+    ctx.strokeStyle="#2a3140"; ctx.lineWidth=1; ctx.strokeRect(x+.5,y+.5,w,h); };
+  const txt=(s,x,y,w,color,size,bold)=>{ ctx.fillStyle=color;
+    ctx.font=(bold?"bold ":"")+size+"px "+FONT; ctx.textAlign="center"; ctx.textBaseline="middle";
+    ctx.fillText(s,x+w/2,y); };
+  // 배경 + 제목
+  ctx.fillStyle="#11151c"; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle="#e7ecf3"; ctx.font="bold 17px "+FONT; ctx.textAlign="left"; ctx.textBaseline="middle";
+  ctx.fillText("우리끼리 스케줄",14,22);
+  let dateStr=""; try{ dateStr="기준 "+new Date().toLocaleDateString("ko-KR"); }catch(e){}
+  ctx.fillStyle="#94a0b3"; ctx.font="11px "+FONT; ctx.fillText(dateStr,14,40);
+  // 헤더
+  const top=titleH;
+  box(0,top,nameW,headH,"#1f2430"); txt("이름",0,top+headH/2,nameW,"#94a0b3",12,true);
+  DAYS.forEach(([k,l],i)=>{ const we=i>=5, x=nameW+i*dayW;
+    box(x,top,dayW,headH,"#1f2430",we); txt(l,x,top+headH/2,dayW,we?"#f0b86e":"#94a0b3",12,true); });
+  // 행
+  people.forEach((p,r)=>{ const y=top+headH+r*rowH;
+    box(0,y,nameW,rowH,"#1f2430"); txt(clip(p.name,6),0,y+rowH/2,nameW,"#e7ecf3",13,true);
+    DAYS.forEach(([k],i)=>{ const d=p.sched[k]||OFF, we=i>=5, x=nameW+i*dayW;
+      if(d.off){ box(x,y,dayW,rowH,"#243b2b",we); txt("휴무",x,y+rowH/2,dayW,"#7ee2a6",12,false); }
+      else{ box(x,y,dayW,rowH,"#3a2330",we);
+        txt(shortT(d.start),x,y+rowH/2-8,dayW,"#f3a8c2",12,false);
+        txt("~",x,y+rowH/2+1,dayW,"#f3a8c2",9,false);
+        txt(shortT(d.end),x,y+rowH/2+10,dayW,"#f3a8c2",12,false); } });
+  });
+  cv.toBlob(b=>{ const a=document.createElement("a");
+    a.href=URL.createObjectURL(b); a.download="우리끼리-스케줄.png";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href),1000); },"image/png");
+}
+document.getElementById("dlImg").onclick=downloadWeekImage;
+
+/* ---------- 입장 비밀번호 게이트 (친구끼리 쓰는 가벼운 잠금) ---------- */
+const GATE_PW="000115";
+(function setupGate(){
+  const gate=document.getElementById("gate");
+  if(localStorage.getItem("crew-gate")==="ok"){ gate.classList.add("hidden"); return; }
+  const pw=document.getElementById("gatePw"),
+        btn=document.getElementById("gateBtn"),
+        err=document.getElementById("gateErr");
+  const tryIn=()=>{
+    if(pw.value===GATE_PW){ localStorage.setItem("crew-gate","ok"); gate.classList.add("hidden"); }
+    else { err.textContent="비밀번호가 틀렸어요 😅"; pw.value=""; pw.focus(); }
+  };
+  btn.onclick=tryIn;
+  pw.onkeydown=(e)=>{ if(e.key==="Enter") tryIn(); };
+  pw.focus();
+})();
 
 /* 탭 전환 */
 document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{
