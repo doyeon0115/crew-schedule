@@ -115,7 +115,10 @@
     .tabs button{font-size:12.5px;min-width:60px;padding:9px 3px}
     table{min-width:0;font-size:12px}      /* 화면 폭에 맞춰 줄임 */
     th,td{padding:6px 4px}
-    .dayrow{grid-template-columns:30px 54px 1fr;gap:6px;font-size:12.5px}
+    .dayrow{grid-template-columns:28px 50px minmax(0,1fr);gap:5px;font-size:12.5px}
+    .times{min-width:0;gap:4px}                              /* 칸이 줄어들 수 있게 */
+    .times input[type=time]{flex:1 1 0;min-width:0;width:100%;padding:6px 2px;font-size:12px}
+    .toggle{padding:6px 4px}
     .cell{min-height:40px;padding:3px}
     .cell .dn{font-size:11px}
     .cell .free{font-size:9px}
