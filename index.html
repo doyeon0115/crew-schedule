@@ -37,8 +37,8 @@
   td.name{font-weight:700;text-align:left;background:var(--card2);position:sticky;left:0;z-index:1}
   td.off{background:var(--off);color:#7ee2a6;border-color:var(--off-b)}
   td.work{background:var(--work);color:#f3a8c2;border-color:var(--work-b)}
-  .pill{display:inline-block;font-size:11px;padding:2px 7px;border-radius:20px}
-  .pill.weekend{color:var(--warn)}
+  th.we{color:var(--warn)}
+  td.we{box-shadow:inset 0 0 0 999px rgba(240,184,110,.06)}  /* 주말 열 살짝 강조 */
   /* calendar */
   .cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
   .cal-nav .mtitle{font-size:16px;font-weight:700}
@@ -104,6 +104,26 @@
   .star{color:var(--accent2)}
   .save-state{font-size:11px;color:var(--muted);text-align:center;margin-top:4px;height:14px}
   small.note{color:var(--muted);font-size:11.5px;display:block;margin-top:8px;line-height:1.5}
+  /* ===== 모바일(좁은 화면) 대응 ===== */
+  @media (max-width:560px){
+    header{padding:14px 12px 6px}
+    header h1{font-size:19px}
+    header p{font-size:12px}
+    .wrap{padding:0 8px 50px}
+    .card{padding:11px;border-radius:12px}
+    .tabs{gap:4px;padding:4px}
+    .tabs button{font-size:12.5px;min-width:60px;padding:9px 3px}
+    table{min-width:0;font-size:12px}      /* 화면 폭에 맞춰 줄임 */
+    th,td{padding:6px 4px}
+    .dayrow{grid-template-columns:30px 54px 1fr;gap:6px;font-size:12.5px}
+    .cell{min-height:40px;padding:3px}
+    .cell .dn{font-size:11px}
+    .cell .free{font-size:9px}
+    .cal-nav .mtitle{font-size:15px}
+    .who label{font-size:12.5px;padding:5px 9px}
+    .slot{font-size:12px}
+    .pstat{font-size:12.5px}
+  }
 </style>
 </head>
 <body>
@@ -213,6 +233,7 @@ let db=null, dbRef=null, remoteOK=false;
 function clone(o){return JSON.parse(JSON.stringify(o));}
 function toMin(t){const [h,m]=t.split(":").map(Number);return h*60+m;}
 function fmt(m){const h=Math.floor(m/60),mm=m%60;return String(h).padStart(2,"0")+":"+String(mm).padStart(2,"0");}
+function shortT(t){const [h,m]=t.split(":");return m==="00"?String(+h):(+h)+":"+m;} // 09:00→9, 20:30→20:30
 function isConfigured(){return !firebaseConfig.apiKey.includes("여기에");}
 
 /* ---------- 저장/동기화 ---------- */
@@ -356,17 +377,18 @@ document.getElementById("calNext").onclick=()=>{ calM++; if(calM>11){calM=0;calY
 function renderWeek(){
   const t=document.getElementById("weekTable");
   let h="<tr><th>이름</th>";
-  DAYS.forEach(([k,l],i)=>h+=`<th class="${i>=5?'pill weekend':''}">${l}</th>`);
+  DAYS.forEach(([k,l],i)=>h+=`<th class="${i>=5?'we':''}">${l}</th>`);
   h+="</tr>";
   for(const id of ids()){
     const p=data.people[id];
     h+=`<tr><td class="name">${esc(p.name)}</td>`;
-    for(const [k] of DAYS){
+    DAYS.forEach(([k],i)=>{
       const d=p.sched[k]||OFF;
+      const we=i>=5?" we":"";
       h+= d.off
-        ? `<td class="off">휴무</td>`
-        : `<td class="work">${d.start}~${d.end}</td>`;
-    }
+        ? `<td class="off${we}">휴무</td>`
+        : `<td class="work${we}">${shortT(d.start)}~${shortT(d.end)}</td>`;
+    });
     h+="</tr>";
   }
   t.innerHTML=h;
