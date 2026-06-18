@@ -101,6 +101,8 @@ async function initStorage(){
       window._vocAdd=(e)=>push(vocRef,e);                   // 건의 추가
       window._vocSet=(key,patch)=>update(ref(db,"rooms/"+ROOM+"/voc/"+key),patch);  // 건의 수정(완료 등)
       window._vocDel=(key)=>remove(ref(db,"rooms/"+ROOM+"/voc/"+key));              // 건의 삭제
+      window._vocCmtAdd=(key,c)=>push(ref(db,"rooms/"+ROOM+"/voc/"+key+"/comments"),c);       // 댓글 추가
+      window._vocCmtDel=(key,ck)=>remove(ref(db,"rooms/"+ROOM+"/voc/"+key+"/comments/"+ck));  // 댓글 삭제
       // 실시간 접속자(프레즌스): 연결되면 등록, 끊기면 자동 제거
       const presRef=ref(db,"rooms/"+ROOM+"/presence");
       const myPres=ref(db,"rooms/"+ROOM+"/presence/"+CLIENT);
@@ -253,24 +255,64 @@ function vocDel(key){
   if(remoteOK && window._vocDel){ window._vocDel(key); }
   else { voc=voc.filter(v=>v.key!==key); saveLocalVoc(); renderVoc(); }
 }
+function vocCommentAdd(key,text){
+  const who=((document.getElementById("vocName")||{}).value||"").trim();
+  const c={t:Date.now(), who:who||"익명", text};
+  if(remoteOK && window._vocCmtAdd){ window._vocCmtAdd(key,c); }
+  else {
+    const item=voc.find(v=>v.key===key); if(!item) return;
+    item.comments=item.comments||{}; item.comments["L"+c.t]=c;
+    saveLocalVoc(); renderVoc();
+  }
+}
+function vocCommentDel(key,ckey){
+  if(remoteOK && window._vocCmtDel){ window._vocCmtDel(key,ckey); }
+  else {
+    const item=voc.find(v=>v.key===key);
+    if(item&&item.comments){ delete item.comments[ckey]; saveLocalVoc(); renderVoc(); }
+  }
+}
+function hhmm(t){const d=new Date(t);return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;}
 function renderVoc(){
   const box=document.getElementById("vocList");
   if(!box) return;
+  const ae=document.activeElement;   // 댓글 입력 중이면 다시 그리지 않음(포커스 보존)
+  if(ae && box.contains(ae) && ae.classList.contains("cmt-input")) return;
   if(!voc.length){ box.innerHTML=`<div class="nofree">아직 의견이 없어요. 처음으로 남겨보세요! 🙌</div>`; return; }
   box.innerHTML=voc.map(v=>{
-    const d=new Date(v.t);
-    const w=`${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+    const cmts=v.comments ? Object.entries(v.comments).map(([ck,cv])=>({ck,...cv})).sort((a,b)=>a.t-b.t) : [];
+    const cmtHTML=cmts.map(c=>`<div class="cmt">
+        <span class="cmt-meta"><b>${esc(c.who||"익명")}</b> ${hhmm(c.t)}</span>
+        <span class="cmt-text">${esc(c.text)}</span>
+        <button class="cmt-del" data-k="${v.key}" data-ck="${c.ck}" title="삭제">×</button>
+      </div>`).join("");
     return `<div class="voc${v.done?' done':''}">
-      <div class="voctop"><b>${esc(v.who||"익명")}</b><span class="vocwhen">${w}</span></div>
+      <div class="voctop"><b>${esc(v.who||"익명")}</b><span class="vocwhen">${hhmm(v.t)}</span></div>
       <div class="voctext">${esc(v.text)}</div>
       <div class="vocbtns">
         <button data-vdone="${v.key}">${v.done?"↩ 되돌리기":"✓ 완료"}</button>
         <button data-vdel="${v.key}">삭제</button>
       </div>
+      <div class="cmt-list">
+        ${cmtHTML || '<div class="cmt-empty">아직 댓글이 없어요</div>'}
+        <div class="cmt-add">
+          <input class="cmt-input" data-k="${v.key}" placeholder="댓글 달기…" maxlength="200">
+          <button class="cmt-btn" data-k="${v.key}">등록</button>
+        </div>
+      </div>
     </div>`;
   }).join("");
   box.querySelectorAll("[data-vdone]").forEach(b=>b.onclick=()=>vocToggle(b.dataset.vdone));
   box.querySelectorAll("[data-vdel]").forEach(b=>b.onclick=()=>{ if(confirm("이 의견을 삭제할까요?")) vocDel(b.dataset.vdel); });
+  box.querySelectorAll(".cmt-del").forEach(b=>b.onclick=()=>{ if(confirm("댓글을 삭제할까요?")) vocCommentDel(b.dataset.k,b.dataset.ck); });
+  box.querySelectorAll(".cmt-btn").forEach(b=>b.onclick=()=>{
+    const inp=box.querySelector(`.cmt-input[data-k="${b.dataset.k}"]`);
+    const text=(inp.value||"").trim(); if(!text){ inp.focus(); return; }
+    vocCommentAdd(b.dataset.k,text);
+  });
+  box.querySelectorAll(".cmt-input").forEach(inp=>inp.onkeydown=(e)=>{
+    if(e.key==="Enter"){ const text=(inp.value||"").trim(); if(text) vocCommentAdd(inp.dataset.k,text); }
+  });
 }
 
 /* ---------- 렌더링 ---------- */
