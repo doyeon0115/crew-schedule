@@ -18,6 +18,7 @@ const ROOM = "our-crew";   // 친구 그룹 이름(아무 단어). 같은 값이
       ※ 시간이 안 알려진 칸은 09:00~18:00로 임시로 넣어놨어요. 수정 탭에서 고치면 됩니다.
    =================================================================== */
 const DAYS = [["mon","월"],["tue","화"],["wed","수"],["thu","목"],["fri","금"],["sat","토"],["sun","일"]];
+const DAYLBL = {mon:"월",tue:"화",wed:"수",thu:"목",fri:"금",sat:"토",sun:"일"};
 const W = (s,e)=>({off:false,start:s,end:e});
 const OFF = {off:true,start:"09:00",end:"18:00"};
 const DEFAULT_DATA = {
@@ -32,7 +33,9 @@ const DEFAULT_DATA = {
 /* =================================================================== */
 let data = clone(DEFAULT_DATA);
 let selectedWho = null;           // 약속잡기에서 선택된 친구 id 집합
-let db=null, dbRef=null, remoteOK=false;
+let db=null, remoteOK=false;
+let logs=[];                      // 기록(입장·변경)
+let me=localStorage.getItem("crew-me")||"";   // 내 이름(기록 표시용)
 
 function clone(o){return JSON.parse(JSON.stringify(o));}
 function toMin(t){const [h,m]=t.split(":").map(Number);return h*60+m;}
@@ -45,15 +48,23 @@ async function initStorage(){
   if(isConfigured()){
     try{
       const {initializeApp}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
-      const {getDatabase,ref,onValue,set}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js");
+      const {getDatabase,ref,onValue,set,push}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js");
       const app=initializeApp(firebaseConfig);
       db=getDatabase(app);
-      dbRef=ref(db,"rooms/"+ROOM);
-      window._set=()=>set(dbRef,data);
-      onValue(dbRef,(snap)=>{
+      const peopleRef=ref(db,"rooms/"+ROOM+"/people");
+      const logsRef=ref(db,"rooms/"+ROOM+"/logs");
+      window._set=()=>set(peopleRef,data.people);           // 스케줄만 저장(로그 안 건드림)
+      window._logPush=(e)=>push(logsRef,e);                 // 기록 추가
+      window._logClear=()=>set(logsRef,null);               // 기록 전체 삭제
+      onValue(peopleRef,(snap)=>{
         const v=snap.val();
-        if(v&&v.people){ data=v; render(); }
+        if(v){ data={people:v}; render(); }
         else { window._set(); }      // 비어있으면 기본값 업로드
+      });
+      onValue(logsRef,(snap)=>{
+        const v=snap.val()||{};
+        logs=Object.values(v).sort((a,b)=>b.t-a.t).slice(0,300);
+        renderLog();
       });
       remoteOK=true;
       banner("🟢 실시간 공유 켜짐 — 친구가 수정하면 바로 반영됩니다. (그룹: "+ROOM+")");
@@ -67,6 +78,7 @@ async function initStorage(){
   // 로컬 폴백
   const saved=localStorage.getItem("crew-sched");
   if(saved){ try{data=JSON.parse(saved);}catch(e){} }
+  try{ logs=JSON.parse(localStorage.getItem("crew-logs")||"[]"); }catch(e){ logs=[]; }
 }
 function persist(){
   if(remoteOK&&window._set){ window._set(); }
@@ -106,10 +118,32 @@ function offCount(ids,dayKey){
   return ids.filter(id=>(data.people[id].sched[dayKey]||OFF).off).length;
 }
 
+/* ---------- 기록(로그) ---------- */
+function addLog(type,msg){
+  const e={t:Date.now(), who:me||"익명", type, msg};
+  if(remoteOK && window._logPush){ window._logPush(e); }
+  else { logs.unshift(e); logs=logs.slice(0,300); localStorage.setItem("crew-logs",JSON.stringify(logs)); renderLog(); }
+}
+function logEntryOnce(){   // 새로고침 도배 방지: 30분에 한 번만 입장 기록
+  const k="crew-lastenter", now=Date.now(), last=+localStorage.getItem(k)||0;
+  if(now-last > 30*60*1000){ addLog("enter","입장했어요"); localStorage.setItem(k,String(now)); }
+}
+function renderLog(){
+  const box=document.getElementById("logList");
+  if(!box) return;
+  if(!logs.length){ box.innerHTML=`<div class="nofree">아직 기록이 없어요.</div>`; return; }
+  box.innerHTML=logs.map(e=>{
+    const d=new Date(e.t);
+    const w=`${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+    const icon=e.type==="enter"?"👋":"✏️";
+    return `<div class="logitem"><span class="lwhen">${w}</span><span>${icon}</span><b>${esc(e.who)}</b><span class="lmsg">${esc(e.msg)}</span></div>`;
+  }).join("");
+}
+
 /* ---------- 렌더링 ---------- */
 function render(){
   ensureWhoSelection();
-  renderWeek(); renderMeet(); renderEdit(); renderCalendar();
+  renderWeek(); renderMeet(); renderEdit(); renderCalendar(); renderLog();
 }
 function ids(){return Object.keys(data.people);}
 
@@ -273,18 +307,23 @@ function renderEdit(){
       </div>`;
     });
     card.innerHTML=`<div class="hd">
-        <input class="nm" value="${esc(p.name)}" data-id="${id}" data-f="name">
+        <input class="nm" value="${esc(p.name)}" data-id="${id}" data-orig="${esc(p.name)}" data-f="name">
         <button class="del" data-del="${id}" title="삭제">🗑</button>
       </div>${rows}`;
     wrap.appendChild(card);
   }
   // 이벤트 바인딩
   wrap.querySelectorAll(".toggle").forEach(t=>t.onclick=()=>{
-    const d=data.people[t.dataset.id].sched[t.dataset.day];
-    d.off=!d.off; persist(); render();
+    const p=data.people[t.dataset.id], d=p.sched[t.dataset.day];
+    d.off=!d.off;
+    addLog("edit",`${p.name} ${DAYLBL[t.dataset.day]} ${d.off?"근무→휴무":"휴무→근무"}`);
+    persist(); render();
   });
   wrap.querySelectorAll("input[type=time]").forEach(inp=>inp.onchange=()=>{
-    data.people[inp.dataset.id].sched[inp.dataset.day][inp.dataset.f]=inp.value;
+    const p=data.people[inp.dataset.id], day=inp.dataset.day;
+    p.sched[day][inp.dataset.f]=inp.value;
+    const s=p.sched[day];
+    addLog("edit",`${p.name} ${DAYLBL[day]} 시간 ${s.start}~${s.end}`);
     persist();
   });
   let nameT;
@@ -295,10 +334,17 @@ function renderEdit(){
       clearTimeout(nameT);          // 저장은 입력이 멈춘 뒤 한 번만
       nameT=setTimeout(persist,500);
     };
-    inp.onblur=()=>{ clearTimeout(nameT); persist(); }; // 칸 벗어나면 바로 저장
+    inp.onblur=()=>{ clearTimeout(nameT);
+      if(inp.value!==inp.dataset.orig){
+        addLog("edit",`이름 변경: ${inp.dataset.orig} → ${inp.value}`);
+        inp.dataset.orig=inp.value;
+      }
+      persist();
+    };
   });
   wrap.querySelectorAll("button.del").forEach(b=>b.onclick=()=>{
-    if(confirm("정말 삭제할까요?")){ delete data.people[b.dataset.del]; persist(); render(); }
+    const nm=data.people[b.dataset.del].name;
+    if(confirm("정말 삭제할까요?")){ delete data.people[b.dataset.del]; addLog("edit",`${nm} 삭제`); persist(); render(); }
   });
 }
 
@@ -307,6 +353,7 @@ document.getElementById("addPerson").onclick=()=>{
   const sched={};
   DAYS.forEach(([k])=>sched[k]=W("09:00","18:00"));
   data.people[id]={name:"새 친구",sched};
+  addLog("edit","친구 추가");
   persist(); render();
   document.querySelector('[data-tab=edit]').click();
 };
@@ -358,28 +405,47 @@ function downloadWeekImage(){
 }
 document.getElementById("dlImg").onclick=downloadWeekImage;
 
-/* ---------- 입장 비밀번호 게이트 (친구끼리 쓰는 가벼운 잠금) ---------- */
+/* ---------- 입장: 비밀번호 게이트 → 이름 선택 ---------- */
 const GATE_PW="000115";
-(function setupGate(){
+function setupGate(){
   const gate=document.getElementById("gate");
-  if(localStorage.getItem("crew-gate")==="ok"){ gate.classList.add("hidden"); return; }
+  if(localStorage.getItem("crew-gate")==="ok"){ gate.classList.add("hidden"); ensureName(); return; }
   const pw=document.getElementById("gatePw"),
         btn=document.getElementById("gateBtn"),
         err=document.getElementById("gateErr");
   const tryIn=()=>{
-    if(pw.value===GATE_PW){ localStorage.setItem("crew-gate","ok"); gate.classList.add("hidden"); }
+    if(pw.value===GATE_PW){ localStorage.setItem("crew-gate","ok"); gate.classList.add("hidden"); ensureName(); }
     else { err.textContent="비밀번호가 틀렸어요 😅"; pw.value=""; pw.focus(); }
   };
   btn.onclick=tryIn;
   pw.onkeydown=(e)=>{ if(e.key==="Enter") tryIn(); };
   pw.focus();
-})();
+}
+function ensureName(){
+  const wa=document.getElementById("whoami");
+  if(me){ wa.classList.add("hidden"); logEntryOnce(); return; }
+  wa.classList.remove("hidden");
+  const inp=document.getElementById("whoInput"), btn=document.getElementById("whoBtn");
+  const go=()=>{ const v=inp.value.trim(); if(!v){ inp.focus(); return; }
+    me=v; localStorage.setItem("crew-me",me); wa.classList.add("hidden"); logEntryOnce(); };
+  btn.onclick=go;
+  inp.onkeydown=(e)=>{ if(e.key==="Enter") go(); };
+  inp.focus();
+}
+
+/* 기록 지우기 */
+document.getElementById("clearLog").onclick=()=>{
+  if(!confirm("모든 기록을 지울까요? (모두에게서 사라져요)")) return;
+  if(remoteOK && window._logClear){ window._logClear(); }
+  else { logs=[]; localStorage.removeItem("crew-logs"); renderLog(); }
+  addLog("edit","기록을 비웠어요");
+};
 
 /* 탭 전환 */
 document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{
   document.querySelectorAll(".tabs button").forEach(x=>x.classList.remove("active"));
   b.classList.add("active");
-  ["week","cal","meet","edit"].forEach(t=>document.getElementById("tab-"+t).style.display="none");
+  ["week","cal","meet","edit","log"].forEach(t=>document.getElementById("tab-"+t).style.display="none");
   document.getElementById("tab-"+b.dataset.tab).style.display="block";
 });
 
@@ -389,4 +455,5 @@ function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;","
 (async function start(){
   await initStorage();
   render();
+  setupGate();          // Firebase 준비 후 게이트/이름 → 기록이 올바른 곳에 저장됨
 })();
