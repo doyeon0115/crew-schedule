@@ -52,8 +52,9 @@ function vocReplyDel(vk,ck,rk){
     if(c&&c.replies){ delete c.replies[rk]; saveLocalVoc(); renderVoc(); }
   }
 }
-async function translateText(text){   // 무료 번역(구글 gtx 엔드포인트, 비공식)
-  const url="https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q="+encodeURIComponent(text);
+async function translateText(text){   // 무료 번역(구글 gtx, 비공식). 한글↔영어 자동 방향
+  const tl=/[가-힣]/.test(text) ? "en" : "ko";   // 한글 있으면 영어로, 없으면 한글로
+  const url="https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl="+tl+"&dt=t&q="+encodeURIComponent(text);
   const r=await fetch(url);
   if(!r.ok) throw new Error("net");
   const j=await r.json();
