@@ -35,9 +35,35 @@ let data = clone(DEFAULT_DATA);
 let selectedWho = null;           // 약속잡기에서 선택된 친구 id 집합
 let db=null, remoteOK=false;
 let logs=[];                      // 기록(입장·변경)
-let me=localStorage.getItem("crew-me")||"";   // 내 이름(기록 표시용)
+let myIP="";                      // 내 공인 IP(비동기로 채워짐)
+const DEV=deviceInfo();           // 기기/OS·브라우저 문자열
+let CLIENT=sessionStorage.getItem("crew-cid");
+if(!CLIENT){ CLIENT=(self.crypto&&crypto.randomUUID)?crypto.randomUUID():"c"+Math.random().toString(36).slice(2); sessionStorage.setItem("crew-cid",CLIENT); }
 
 function clone(o){return JSON.parse(JSON.stringify(o));}
+function deviceInfo(){
+  const ua=navigator.userAgent||"";
+  let os="기타";
+  if(/Windows/.test(ua)) os="Windows";
+  else if(/iPhone|iPad|iPod/.test(ua)) os="iOS";
+  else if(/Android/.test(ua)) os="Android";
+  else if(/Mac OS X|Macintosh/.test(ua)) os="Mac";
+  else if(/Linux/.test(ua)) os="Linux";
+  let br="";
+  if(/Edg\//.test(ua)) br="Edge";
+  else if(/Chrome\//.test(ua)) br="Chrome";
+  else if(/Firefox\//.test(ua)) br="Firefox";
+  else if(/Safari\//.test(ua)) br="Safari";
+  return br?os+"·"+br:os;
+}
+async function fetchIP(){
+  try{ const r=await fetch("https://api.ipify.org?format=json"); const j=await r.json(); myIP=j.ip||""; }
+  catch(e){ myIP=""; }
+}
+function showPresence(n){
+  const el=document.getElementById("presence");
+  if(el) el.textContent = n>0 ? `👥 ${n}명 접속 중` : "";
+}
 function toMin(t){const [h,m]=t.split(":").map(Number);return h*60+m;}
 function fmt(m){const h=Math.floor(m/60),mm=m%60;return String(h).padStart(2,"0")+":"+String(mm).padStart(2,"0");}
 function shortT(t){const [h,m]=t.split(":");return m==="00"?String(+h):(+h)+":"+m;} // 09:00→9, 20:30→20:30
@@ -48,7 +74,7 @@ async function initStorage(){
   if(isConfigured()){
     try{
       const {initializeApp}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
-      const {getDatabase,ref,onValue,set,push}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js");
+      const {getDatabase,ref,onValue,set,push,onDisconnect,remove}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js");
       const app=initializeApp(firebaseConfig);
       db=getDatabase(app);
       const peopleRef=ref(db,"rooms/"+ROOM+"/people");
@@ -56,6 +82,13 @@ async function initStorage(){
       window._set=()=>set(peopleRef,data.people);           // 스케줄만 저장(로그 안 건드림)
       window._logPush=(e)=>push(logsRef,e);                 // 기록 추가
       window._logClear=()=>set(logsRef,null);               // 기록 전체 삭제
+      // 실시간 접속자(프레즌스): 연결되면 등록, 끊기면 자동 제거
+      const presRef=ref(db,"rooms/"+ROOM+"/presence");
+      const myPres=ref(db,"rooms/"+ROOM+"/presence/"+CLIENT);
+      onValue(ref(db,".info/connected"),(s)=>{
+        if(s.val()===true){ onDisconnect(myPres).remove(); set(myPres,{os:DEV,t:Date.now()}); }
+      });
+      onValue(presRef,(s)=>{ const v=s.val()||{}; showPresence(Object.keys(v).length); });
       onValue(peopleRef,(snap)=>{
         const v=snap.val();
         if(v){ data={people:v}; render(); }
@@ -91,7 +124,10 @@ function flashSave(){
   el.textContent=remoteOK?"✓ 모두에게 저장됨":"✓ 저장됨(이 기기)";
   clearTimeout(saveT); saveT=setTimeout(()=>el.textContent="",1500);
 }
-function banner(html){const b=document.getElementById("banner");b.style.display="block";b.innerHTML=html;}
+function banner(html){
+  const b=document.getElementById("banner"); b.style.display="flex";
+  document.getElementById("bannerMsg").innerHTML=html;
+}
 
 /* ---------- 가용시간 계산 ---------- */
 function freeIntervals(d){
@@ -120,7 +156,7 @@ function offCount(ids,dayKey){
 
 /* ---------- 기록(로그) ---------- */
 function addLog(type,msg){
-  const e={t:Date.now(), who:me||"익명", type, msg};
+  const e={t:Date.now(), type, dev:DEV, ip:myIP||"?", msg};
   if(remoteOK && window._logPush){ window._logPush(e); }
   else { logs.unshift(e); logs=logs.slice(0,300); localStorage.setItem("crew-logs",JSON.stringify(logs)); renderLog(); }
 }
@@ -136,7 +172,7 @@ function renderLog(){
     const d=new Date(e.t);
     const w=`${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
     const icon=e.type==="enter"?"👋":"✏️";
-    return `<div class="logitem"><span class="lwhen">${w}</span><span>${icon}</span><b>${esc(e.who)}</b><span class="lmsg">${esc(e.msg)}</span></div>`;
+    return `<div class="logitem"><span class="lwhen">${w}</span><span>${icon}</span><span class="ldev">${esc(e.dev||"")}</span><span class="lip">${esc(e.ip||"")}</span><span class="lmsg">${esc(e.msg)}</span></div>`;
   }).join("");
 }
 
@@ -409,28 +445,17 @@ document.getElementById("dlImg").onclick=downloadWeekImage;
 const GATE_PW="000115";
 function setupGate(){
   const gate=document.getElementById("gate");
-  if(localStorage.getItem("crew-gate")==="ok"){ gate.classList.add("hidden"); ensureName(); return; }
+  if(localStorage.getItem("crew-gate")==="ok"){ gate.classList.add("hidden"); logEntryOnce(); return; }
   const pw=document.getElementById("gatePw"),
         btn=document.getElementById("gateBtn"),
         err=document.getElementById("gateErr");
   const tryIn=()=>{
-    if(pw.value===GATE_PW){ localStorage.setItem("crew-gate","ok"); gate.classList.add("hidden"); ensureName(); }
+    if(pw.value===GATE_PW){ localStorage.setItem("crew-gate","ok"); gate.classList.add("hidden"); logEntryOnce(); }
     else { err.textContent="비밀번호가 틀렸어요 😅"; pw.value=""; pw.focus(); }
   };
   btn.onclick=tryIn;
   pw.onkeydown=(e)=>{ if(e.key==="Enter") tryIn(); };
   pw.focus();
-}
-function ensureName(){
-  const wa=document.getElementById("whoami");
-  if(me){ wa.classList.add("hidden"); logEntryOnce(); return; }
-  wa.classList.remove("hidden");
-  const inp=document.getElementById("whoInput"), btn=document.getElementById("whoBtn");
-  const go=()=>{ const v=inp.value.trim(); if(!v){ inp.focus(); return; }
-    me=v; localStorage.setItem("crew-me",me); wa.classList.add("hidden"); logEntryOnce(); };
-  btn.onclick=go;
-  inp.onkeydown=(e)=>{ if(e.key==="Enter") go(); };
-  inp.focus();
 }
 
 /* 기록 지우기 */
@@ -453,7 +478,8 @@ function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;","
 
 /* 시작 */
 (async function start(){
+  fetchIP();            // 공인 IP 비동기로 가져오기(기록용)
   await initStorage();
   render();
-  setupGate();          // Firebase 준비 후 게이트/이름 → 기록이 올바른 곳에 저장됨
+  setupGate();          // Firebase 준비 후 게이트 → 기록이 올바른 곳에 저장됨
 })();

@@ -17,21 +17,15 @@
     <div id="gateErr" class="gate-err"></div>
   </div>
 </div>
-<div id="whoami" class="screen hidden">
-  <div class="gate-box">
-    <div class="gate-emoji">👋</div>
-    <h2>누구세요?</h2>
-    <p>이름을 입력하면 기록에 표시돼요</p>
-    <input id="whoInput" type="text" maxlength="10" placeholder="이름" autocomplete="off">
-    <button id="whoBtn">시작하기</button>
-  </div>
-</div>
 <header>
   <h1>📅 우리끼리 스케줄</h1>
   <p>누가 언제 쉬는지 한눈에 보고, 다 같이 볼 시간을 찾아요</p>
 </header>
 <div class="wrap">
-  <div id="banner" class="banner" style="display:none"></div>
+  <div id="banner" class="banner" style="display:none">
+    <span id="bannerMsg"></span>
+    <span id="presence" class="presence"></span>
+  </div>
 
   <div class="tabs">
     <button data-tab="week" class="active">📊 한눈에</button>
