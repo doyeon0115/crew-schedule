@@ -155,6 +155,11 @@ small.note{color:var(--muted);font-size:11.5px;display:block;margin-top:8px;line
 .lrow1 .lmsg{color:var(--text)}
 .lrow2{color:var(--muted);font-size:11px;margin-top:3px;padding-left:2px;line-height:1.4;font-family:monospace;word-break:break-all}
 .lrow2 .lip{color:var(--muted)}
+.pager{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:12px;
+  color:var(--muted);font-size:12.5px}
+.pager button{background:var(--card2);border:1px solid var(--line);color:var(--text);
+  border-radius:8px;padding:6px 12px;font-size:13px;cursor:pointer}
+.pager button:disabled{opacity:.4;cursor:default}
 .gate-emoji{font-size:34px}
 .gate-box h2{color:var(--text);font-size:18px;margin:10px 0 2px}
 .gate-box p{color:var(--muted);font-size:13px;margin:0 0 18px}
