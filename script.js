@@ -184,7 +184,17 @@ function render(){
   ensureWhoSelection();
   renderWeek(); renderMeet(); renderEdit(); renderCalendar(); renderLog();
 }
-function ids(){return Object.keys(data.people);}
+function ids(){   // ord(순서) 기준 정렬, 없으면 키 순서로 폴백
+  return Object.keys(data.people).sort((a,b)=>{
+    const oa=data.people[a].ord, ob=data.people[b].ord;
+    const na=(oa==null?1e9:oa), nb=(ob==null?1e9:ob);
+    if(na!==nb) return na-nb;
+    return a<b?-1:a>b?1:0;
+  });
+}
+function ensureOrds(){   // 모든 친구에게 현재 표시 순서대로 ord 부여
+  ids().forEach((id,i)=>{ data.people[id].ord=i; });
+}
 
 /* ---------- 달력 ---------- */
 const DOW2KEY=["sun","mon","tue","wed","thu","fri","sat"]; // JS getDay() 순서
@@ -354,8 +364,11 @@ function renderEdit(){
     });
     card.innerHTML=`
       <div class="hd">
-        <span class="pname">${esc(p.name)}</span>
-        <span class="psum">${offSummary(p)}</span>
+        <span class="drag" title="드래그로 순서 변경">⠿</span>
+        <span class="hdmain">
+          <span class="pname">${esc(p.name)}</span>
+          <span class="psum">${offSummary(p)}</span>
+        </span>
         <span class="chev">▸</span>
       </div>
       <div class="body">
@@ -368,12 +381,25 @@ function renderEdit(){
       </div>`;
     wrap.appendChild(card);
   }
-  // 헤더 탭 → 펼치기/접기 (한 번에 하나만 열림)
-  wrap.querySelectorAll(".person .hd").forEach(hd=>hd.onclick=()=>{
+  // 헤더 탭 → 펼치기/접기 (드래그 핸들은 제외, 한 번에 하나만 열림)
+  wrap.querySelectorAll(".person .hd").forEach(hd=>hd.onclick=(e)=>{
+    if(e.target.closest(".drag")) return;   // 핸들 클릭은 무시
     const id=hd.parentElement.dataset.id;
     editOpen=(editOpen===id)?null:id;
     wrap.querySelectorAll(".person").forEach(c=>c.classList.toggle("open", c.dataset.id===editOpen));
   });
+  // 드래그로 순서 변경 (SortableJS, 핸들 ⠿ 로만)
+  if(window.Sortable){
+    if(wrap._sortable) wrap._sortable.destroy();
+    wrap._sortable=Sortable.create(wrap,{
+      handle:".drag", animation:150, delayOnTouchOnly:true, delay:80,
+      onEnd:()=>{
+        [...wrap.querySelectorAll(".person")].forEach((c,i)=>{ if(data.people[c.dataset.id]) data.people[c.dataset.id].ord=i; });
+        addLog("edit","순서 변경");
+        persist(); render();
+      }
+    });
+  }
   // 이벤트 바인딩
   wrap.querySelectorAll(".toggle").forEach(t=>t.onclick=()=>{
     const p=data.people[t.dataset.id], d=p.sched[t.dataset.day];
@@ -416,7 +442,9 @@ document.getElementById("addPerson").onclick=()=>{
   const id="p"+Date.now();
   const sched={};
   DAYS.forEach(([k])=>sched[k]=W("09:00","18:00"));
-  data.people[id]={name:"새 친구",sched};
+  ensureOrds();                // 기존 친구들 순서 확정
+  const maxOrd=Math.max(-1,...Object.values(data.people).map(p=>p.ord==null?-1:p.ord));
+  data.people[id]={name:"새 친구",sched,ord:maxOrd+1};   // 맨 아래로
   editOpen=id;                 // 새 친구는 바로 펼쳐서 편집
   addLog("edit","친구 추가");
   persist(); render();

@@ -64,8 +64,12 @@ td.we{box-shadow:inset 0 0 0 999px rgba(240,184,110,.06)}  /* 주말 열 살짝 
 /* edit cards (아코디언) */
 .person{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px;background:var(--card2)}
 .person .hd{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
-.person .pname{font-weight:700;font-size:15px}
+.person .drag{cursor:grab;color:var(--muted);font-size:16px;padding:0 2px;touch-action:none}
+.person .hdmain{display:flex;align-items:center;gap:8px;flex:1;min-width:0;overflow:hidden}
+.person .pname{font-weight:700;font-size:15px;flex-shrink:0}
 .person .psum{color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sortable-ghost{opacity:.35}
+.sortable-chosen{background:var(--card)}
 .person .chev{margin-left:auto;color:var(--muted);font-size:14px;transition:transform .15s}
 .person.open .chev{transform:rotate(90deg)}
 .person .body{display:none;margin-top:10px;border-top:1px solid var(--line);padding-top:8px}
