@@ -42,9 +42,21 @@ document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{
 
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
 
+/* 로그 탭은 관리자 IP에서만 보이게 (화면 숨김 수준) */
+const ADMIN_IP="106.101.196.46";
+function applyAdminVisibility(){
+  const isAdmin = myIP===ADMIN_IP;
+  const tab=document.querySelector('.tabs button[data-tab="log"]');
+  if(tab) tab.style.display = isAdmin ? "" : "none";
+  if(!isAdmin){   // 관리자 아닌데 로그 탭 보고 있으면 한눈에로 돌림
+    const sec=document.getElementById("tab-log");
+    if(sec && sec.style.display!=="none") document.querySelector('.tabs button[data-tab="week"]').click();
+  }
+}
+
 /* 시작 */
 (async function start(){
-  fetchIP();            // 공인 IP 비동기로 가져오기(기록용)
+  fetchIP().then(applyAdminVisibility);   // IP 확인 후 로그 탭 노출 결정
   await initStorage();
   render();
   setupGate();          // Firebase 준비 후 게이트 → 기록이 올바른 곳에 저장됨

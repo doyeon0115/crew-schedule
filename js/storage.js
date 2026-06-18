@@ -20,6 +20,8 @@ async function initStorage(){
       window._reactSet=(key,em,on)=> on                                                       // 이모지 반응 토글
         ? set(ref(db,"rooms/"+ROOM+"/voc/"+key+"/reactions/"+em+"/"+CLIENT),true)
         : remove(ref(db,"rooms/"+ROOM+"/voc/"+key+"/reactions/"+em+"/"+CLIENT));
+      window._replyAdd=(key,ck,r)=>push(ref(db,"rooms/"+ROOM+"/voc/"+key+"/comments/"+ck+"/replies"),r);       // 대댓글 추가
+      window._replyDel=(key,ck,rk)=>remove(ref(db,"rooms/"+ROOM+"/voc/"+key+"/comments/"+ck+"/replies/"+rk));  // 대댓글 삭제
       // 실시간 접속자(프레즌스): 연결되면 등록, 끊기면 자동 제거
       const presRef=ref(db,"rooms/"+ROOM+"/presence");
       const myPres=ref(db,"rooms/"+ROOM+"/presence/"+CLIENT);
