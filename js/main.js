@@ -54,6 +54,11 @@ function applyAdminVisibility(){
   }
 }
 
+/* PWA: 서비스워커 등록 (https에서만 동작, file://에선 무시됨) */
+if("serviceWorker" in navigator){
+  window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+}
+
 /* 시작 */
 (async function start(){
   fetchIP().then(applyAdminVisibility);   // IP 확인 후 로그 탭 노출 결정

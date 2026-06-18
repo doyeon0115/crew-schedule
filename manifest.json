@@ -1,0 +1,14 @@
+{
+  "name": "우리끼리 스케줄",
+  "short_name": "우리끼리",
+  "description": "친구들 스케줄을 한눈에 보고 약속 잡기 좋은 날을 찾아주는 앱",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f1115",
+  "theme_color": "#0f1115",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
