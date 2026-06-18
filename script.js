@@ -199,7 +199,7 @@ function renderLog(){
     const osbr=[e.os,e.br].filter(Boolean).join("·") || (e.dev||"");   // 옛 로그 호환
     const device=e.device||e.plat||"";
     const meta=[device, osbr, e.scr, e.lang].filter(Boolean).map(esc).join(" · ");
-    const ref=e.ref?`유입: ${esc(e.ref)}`:"";
+    const ref=(e.ref && e.ref!=="직접 접속")?`유입: ${esc(e.ref)}`:"";
     const ip=e.ip?`IP ${esc(e.ip)}`:"";
     const sub=[meta, ref, ip].filter(Boolean).join("  ·  ");
     return `<div class="logitem">
