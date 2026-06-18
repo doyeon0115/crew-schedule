@@ -33,6 +33,7 @@ const DEFAULT_DATA = {
 /* =================================================================== */
 let data = clone(DEFAULT_DATA);
 let selectedWho = null;           // 약속잡기에서 선택된 친구 id 집합
+let editOpen = null;              // 수정 탭에서 펼쳐진 친구 id (아코디언)
 let db=null, remoteOK=false;
 let logs=[];                      // 기록(입장·변경)
 let myIP="";                      // 내 공인 IP(비동기로 채워짐)
@@ -321,6 +322,12 @@ function renderMeet(){
   }).join("");
 }
 
+function offSummary(p){
+  const offs=DAYS.filter(([k])=>(p.sched[k]||OFF).off).map(([k,l])=>l);
+  if(offs.length===0) return "휴무 없음";
+  if(offs.length===7) return "매일 휴무";
+  return "휴무 "+offs.join("·");
+}
 function renderEdit(){
   const wrap=document.getElementById("editList");
   // 이름/시간 입력칸을 치는 중이면 다시 그리지 않음(포커스·커서 보존)
@@ -330,7 +337,8 @@ function renderEdit(){
   for(const id of ids()){
     const p=data.people[id];
     const card=document.createElement("div");
-    card.className="person";
+    card.className="person"+(id===editOpen?" open":"");
+    card.dataset.id=id;
     let rows="";
     DAYS.forEach(([k,l],i)=>{
       const d=p.sched[k]||OFF;
@@ -344,12 +352,28 @@ function renderEdit(){
         </div>
       </div>`;
     });
-    card.innerHTML=`<div class="hd">
-        <input class="nm" value="${esc(p.name)}" data-id="${id}" data-orig="${esc(p.name)}" data-f="name">
-        <button class="del" data-del="${id}" title="삭제">🗑</button>
-      </div>${rows}`;
+    card.innerHTML=`
+      <div class="hd">
+        <span class="pname">${esc(p.name)}</span>
+        <span class="psum">${offSummary(p)}</span>
+        <span class="chev">▸</span>
+      </div>
+      <div class="body">
+        <div class="namerow">
+          <label>이름</label>
+          <input class="nm" value="${esc(p.name)}" data-id="${id}" data-orig="${esc(p.name)}" data-f="name">
+        </div>
+        ${rows}
+        <button class="del" data-del="${id}">🗑 이 친구 삭제</button>
+      </div>`;
     wrap.appendChild(card);
   }
+  // 헤더 탭 → 펼치기/접기 (한 번에 하나만 열림)
+  wrap.querySelectorAll(".person .hd").forEach(hd=>hd.onclick=()=>{
+    const id=hd.parentElement.dataset.id;
+    editOpen=(editOpen===id)?null:id;
+    wrap.querySelectorAll(".person").forEach(c=>c.classList.toggle("open", c.dataset.id===editOpen));
+  });
   // 이벤트 바인딩
   wrap.querySelectorAll(".toggle").forEach(t=>t.onclick=()=>{
     const p=data.people[t.dataset.id], d=p.sched[t.dataset.day];
@@ -368,8 +392,10 @@ function renderEdit(){
   wrap.querySelectorAll("input.nm").forEach(inp=>{
     inp.oninput=()=>{
       data.people[inp.dataset.id].name=inp.value;
-      renderWeek();                 // 이름은 즉시 반영
-      clearTimeout(nameT);          // 저장은 입력이 멈춘 뒤 한 번만
+      const pn=inp.closest(".person").querySelector(".pname");
+      if(pn) pn.textContent=inp.value;   // 헤더 이름도 즉시 반영
+      renderWeek();                       // 주간표도 즉시 반영
+      clearTimeout(nameT);                // 저장은 입력이 멈춘 뒤 한 번만
       nameT=setTimeout(persist,500);
     };
     inp.onblur=()=>{ clearTimeout(nameT);
@@ -391,6 +417,7 @@ document.getElementById("addPerson").onclick=()=>{
   const sched={};
   DAYS.forEach(([k])=>sched[k]=W("09:00","18:00"));
   data.people[id]={name:"새 친구",sched};
+  editOpen=id;                 // 새 친구는 바로 펼쳐서 편집
   addLog("edit","친구 추가");
   persist(); render();
   document.querySelector('[data-tab=edit]').click();
