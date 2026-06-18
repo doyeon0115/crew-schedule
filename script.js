@@ -62,7 +62,9 @@ async function fetchIP(){
 }
 function showPresence(n){
   const el=document.getElementById("presence");
-  if(el) el.textContent = n>0 ? `👥 ${n}명 접속 중` : "";
+  if(!el) return;
+  if(n>0){ el.style.display="inline-block"; el.textContent=`👥 ${n}명 접속 중`; }
+  else { el.style.display="none"; }
 }
 function toMin(t){const [h,m]=t.split(":").map(Number);return h*60+m;}
 function fmt(m){const h=Math.floor(m/60),mm=m%60;return String(h).padStart(2,"0")+":"+String(mm).padStart(2,"0");}
@@ -100,13 +102,13 @@ async function initStorage(){
         renderLog();
       });
       remoteOK=true;
-      banner("🟢 실시간 공유 켜짐 — 친구가 수정하면 바로 반영됩니다. (그룹: "+ROOM+")");
+      banner("🟢 실시간 공유 켜짐");
       return;
     }catch(e){
-      banner("⚠️ Firebase 연결 실패 — 이 기기에만 저장됩니다. 설정값을 확인하세요. ("+e.message+")");
+      banner("⚠️ 연결 실패 · 이 기기에만 저장");
     }
   } else {
-    banner("ℹ️ 지금은 <b>이 기기에만</b> 저장돼요. 친구들과 실시간 공유하려면 script.js 상단의 Firebase 설정을 채우세요 (README 참고).");
+    banner("ℹ️ 이 기기에만 저장됨");
   }
   // 로컬 폴백
   const saved=localStorage.getItem("crew-sched");
@@ -125,8 +127,8 @@ function flashSave(){
   clearTimeout(saveT); saveT=setTimeout(()=>el.textContent="",1500);
 }
 function banner(html){
-  const b=document.getElementById("banner"); b.style.display="flex";
-  document.getElementById("bannerMsg").innerHTML=html;
+  const m=document.getElementById("bannerMsg");
+  m.style.display="inline-block"; m.innerHTML=html;
 }
 
 /* ---------- 가용시간 계산 ---------- */
