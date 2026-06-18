@@ -104,7 +104,7 @@ async function initStorage(){
           set(myPres,{os:DEV,t:Date.now()});
           // 퇴장 기록: 연결 끊기면 서버가 자동으로 로그 한 줄 남김(시각=실제 끊긴 시각)
           const leaveRef=push(logsRef);
-          onDisconnect(leaveRef).set({t:serverTimestamp(),type:"leave",os:INFO.os,br:INFO.br,device:INFO.device,ref:INFO.ref,scr:INFO.scr,lang:INFO.lang,ip:myIP||"?",msg:"나갔어요"});
+          onDisconnect(leaveRef).set({t:serverTimestamp(),type:"leave",os:INFO.os,br:INFO.br,device:INFO.device,ref:INFO.ref,lang:INFO.lang,ip:myIP||"?",msg:"나갔어요"});
         }
       });
       onValue(presRef,(s)=>{ const v=s.val()||{}; showPresence(Object.keys(v).length); });
@@ -180,7 +180,7 @@ function offCount(ids,dayKey){
 
 /* ---------- 기록(로그) ---------- */
 function addLog(type,msg){
-  const e={t:Date.now(), type, os:INFO.os, br:INFO.br, device:INFO.device, ref:INFO.ref, scr:INFO.scr, lang:INFO.lang, ip:myIP||"?", msg};
+  const e={t:Date.now(), type, os:INFO.os, br:INFO.br, device:INFO.device, ref:INFO.ref, lang:INFO.lang, ip:myIP||"?", msg};
   if(remoteOK && window._logPush){ window._logPush(e); }
   else { logs.unshift(e); logs=logs.slice(0,300); localStorage.setItem("crew-logs",JSON.stringify(logs)); renderLog(); }
 }
@@ -198,7 +198,7 @@ function renderLog(){
     const icon=e.type==="enter"?"👋":e.type==="leave"?"🚪":"✏️";
     const osbr=[e.os,e.br].filter(Boolean).join("·") || (e.dev||"");   // 옛 로그 호환
     const device=e.device||e.plat||"";
-    const meta=[device, osbr, e.scr, e.lang].filter(Boolean).map(esc).join(" · ");
+    const meta=[device, osbr, e.lang].filter(Boolean).map(esc).join(" · ");
     const ref=(e.ref && e.ref!=="직접 접속")?`유입: ${esc(e.ref)}`:"";
     const ip=e.ip?`IP ${esc(e.ip)}`:"";
     const sub=[meta, ref, ip].filter(Boolean).join("  ·  ");
