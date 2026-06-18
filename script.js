@@ -74,7 +74,7 @@ async function fetchIP(){
 function showPresence(n){
   const el=document.getElementById("presence");
   if(!el) return;
-  if(n>0){ el.style.display="inline-block"; el.textContent=`👥 ${n}명 접속 중`; }
+  if(n>0){ el.style.display="inline-block"; el.textContent=`😺 ${n}명 접속 중`; }
   else { el.style.display="none"; }
 }
 function toMin(t){const [h,m]=t.split(":").map(Number);return h*60+m;}
@@ -298,7 +298,7 @@ function renderWeek(){
   h+="</tr>";
   for(const id of ids()){
     const p=data.people[id];
-    h+=`<tr><td class="name">${esc(p.name)}</td>`;
+    h+=`<tr><td class="name">${avatarHTML(p,"sm")}${esc(p.name)}</td>`;
     DAYS.forEach(([k],i)=>{
       const d=p.sched[k]||OFF;
       const we=i>=5?" we":"";
@@ -320,7 +320,7 @@ function renderMeet(){
   const who=document.getElementById("whoList");
   who.innerHTML=ids().map(id=>{
     const c=selectedWho.has(id)?"checked":"";
-    return `<label><input type="checkbox" data-who="${id}" ${c}> ${esc(data.people[id].name)}</label>`;
+    return `<label><input type="checkbox" data-who="${id}" ${c}> ${avatarHTML(data.people[id],"sm")}${esc(data.people[id].name)}</label>`;
   }).join("");
   who.querySelectorAll("input").forEach(inp=>inp.onchange=()=>{
     const id=inp.dataset.who;
@@ -368,6 +368,37 @@ function offSummary(p){
   if(offs.length===7) return "매일 휴무";
   return "휴무 "+offs.join("·");
 }
+function avatarHTML(p, cls){   // 프로필 사진(없으면 이름 첫 글자)
+  const c="avatar"+(cls?" "+cls:"");
+  if(p.avatar) return `<img class="${c}" src="${p.avatar}" alt="">`;
+  const ini=esc((p.name||"?").trim().slice(0,1)||"?");
+  return `<span class="${c} ph">${ini}</span>`;
+}
+function pickAvatar(id){       // 갤러리/카메라에서 골라 128px JPEG로 줄여 저장
+  const inp=document.createElement("input");
+  inp.type="file"; inp.accept="image/*";
+  inp.onchange=()=>{
+    const f=inp.files&&inp.files[0]; if(!f) return;
+    const img=new Image();
+    img.onload=()=>{
+      const size=128, cv=document.createElement("canvas");
+      cv.width=cv.height=size;
+      const ctx=cv.getContext("2d");
+      const sc=Math.max(size/img.width,size/img.height);
+      const w=img.width*sc, h=img.height*sc;
+      ctx.drawImage(img,(size-w)/2,(size-h)/2,w,h);   // 정사각 가운데 크롭
+      if(data.people[id]){
+        data.people[id].avatar=cv.toDataURL("image/jpeg",0.7);
+        addLog("edit","프로필 사진 변경");
+        persist(); render();
+      }
+      URL.revokeObjectURL(img.src);
+    };
+    img.onerror=()=>{ alert("이미지를 불러오지 못했어요."); URL.revokeObjectURL(img.src); };
+    img.src=URL.createObjectURL(f);
+  };
+  inp.click();
+}
 function renderEdit(){
   const wrap=document.getElementById("editList");
   // 이름/시간 입력칸을 치는 중이면 다시 그리지 않음(포커스·커서 보존)
@@ -395,6 +426,7 @@ function renderEdit(){
     card.innerHTML=`
       <div class="hd">
         <span class="drag" title="드래그로 순서 변경">⠿</span>
+        ${avatarHTML(p)}
         <span class="hdmain">
           <span class="pname">${esc(p.name)}</span>
           <span class="psum">${offSummary(p)}</span>
@@ -402,9 +434,14 @@ function renderEdit(){
         <span class="chev">▸</span>
       </div>
       <div class="body">
-        <div class="namerow">
-          <label>이름</label>
-          <input class="nm" value="${esc(p.name)}" data-id="${id}" data-orig="${esc(p.name)}" data-f="name">
+        <div class="profrow">
+          <button class="avatarbtn" data-pick="${id}" title="사진 변경">
+            ${avatarHTML(p,"big")}<span class="cam">📷</span>
+          </button>
+          <div class="namerow">
+            <label>이름</label>
+            <input class="nm" value="${esc(p.name)}" data-id="${id}" data-orig="${esc(p.name)}" data-f="name">
+          </div>
         </div>
         ${rows}
         <button class="del" data-del="${id}">🗑 이 친구 삭제</button>
@@ -431,6 +468,7 @@ function renderEdit(){
     });
   }
   // 이벤트 바인딩
+  wrap.querySelectorAll("[data-pick]").forEach(b=>b.onclick=(e)=>{ e.stopPropagation(); pickAvatar(b.dataset.pick); });
   wrap.querySelectorAll(".toggle").forEach(t=>t.onclick=()=>{
     const p=data.people[t.dataset.id], d=p.sched[t.dataset.day];
     d.off=!d.off;
