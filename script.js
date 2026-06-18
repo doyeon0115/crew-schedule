@@ -282,9 +282,9 @@ function renderVoc(){
   box.innerHTML=voc.map(v=>{
     const cmts=v.comments ? Object.entries(v.comments).map(([ck,cv])=>({ck,...cv})).sort((a,b)=>a.t-b.t) : [];
     const cmtHTML=cmts.map(c=>`<div class="cmt">
-        <span class="cmt-meta"><b>${esc(c.who||"익명")}</b> ${hhmm(c.t)}</span>
-        <span class="cmt-text">${esc(c.text)}</span>
-        <button class="cmt-del" data-k="${v.key}" data-ck="${c.ck}" title="삭제">×</button>
+        <div class="cmt-head"><b>${esc(c.who||"익명")}</b><span class="cmt-time">${hhmm(c.t)}</span>
+          <button class="cmt-del" data-k="${v.key}" data-ck="${c.ck}" title="삭제">×</button></div>
+        <div class="cmt-text">${esc(c.text)}</div>
       </div>`).join("");
     return `<div class="voc${v.done?' done':''}">
       <div class="voctop"><b>${esc(v.who||"익명")}</b><span class="vocwhen">${hhmm(v.t)}</span></div>
@@ -294,7 +294,8 @@ function renderVoc(){
         <button data-vdel="${v.key}">삭제</button>
       </div>
       <div class="cmt-list">
-        ${cmtHTML || '<div class="cmt-empty">아직 댓글이 없어요</div>'}
+        ${cmts.length?`<div class="cmt-count">💬 댓글 ${cmts.length}</div>`:""}
+        ${cmtHTML}
         <div class="cmt-add">
           <input class="cmt-input" data-k="${v.key}" placeholder="댓글 달기…" maxlength="200">
           <button class="cmt-btn" data-k="${v.key}">등록</button>
