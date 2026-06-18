@@ -149,18 +149,23 @@ function banner(html){
 }
 
 /* ---------- 가용시간 계산 ---------- */
-function freeIntervals(d){
-  if(d.off) return [[0,1440]];
+const MEET_START=600, MEET_END=1440;   // 약속 잡기 좋은 시간대: 10:00 ~ 24:00
+function clampWin(s,e){                 // 시간대 안으로 자르고, 1시간 미만이면 버림
+  s=Math.max(s,MEET_START); e=Math.min(e,MEET_END);
+  return (e-s>=60)?[s,e]:null;
+}
+function freeIntervals(d){              // 근무시간 빼고, 약속 시간대 안의 빈 시간만
+  if(d.off){ const w=clampWin(MEET_START,MEET_END); return w?[w]:[]; }
   const s=toMin(d.start), e=toMin(d.end), out=[];
-  if(s>0) out.push([0,s]);
-  if(e<1440) out.push([e,1440]);
+  const before=clampWin(MEET_START,s); if(before) out.push(before);  // 출근 전
+  const after =clampWin(e,MEET_END);   if(after)  out.push(after);   // 퇴근 후
   return out;
 }
 function intersect(a,b){
   const out=[];
   for(const [s1,e1] of a) for(const [s2,e2] of b){
     const s=Math.max(s1,s2), e=Math.min(e1,e2);
-    if(e-s>=30) out.push([s,e]);   // 30분 이상 겹칠 때만
+    if(e-s>=60) out.push([s,e]);   // 1시간 이상 겹칠 때만
   }
   return out;
 }
@@ -272,7 +277,7 @@ function renderCalDetail(){
       <b>${esc(data.people[id].name)}</b></div>`;
   }
   const free=commonFree(chosen,key);
-  const allDay=free.length===1&&free[0][0]===0&&free[0][1]===1440;
+  const allDay=free.length===1&&free[0][0]===MEET_START&&free[0][1]===MEET_END;
   let slot;
   if(!chosen.length) slot=`<div class="nofree">"🍻 약속" 탭에서 모일 친구를 먼저 골라주세요.</div>`;
   else if(allDay) slot=`<div class="slots"><span class="slot">하루 종일 가능 🎉</span></div>`;
@@ -331,7 +336,7 @@ function renderMeet(){
   const rows=DAYS.map(([k,l],i)=>{
     const free=commonFree(chosen,k);
     const offc=offCount(chosen,k);
-    const allDay=free.length===1&&free[0][0]===0&&free[0][1]===1440;
+    const allDay=free.length===1&&free[0][0]===MEET_START&&free[0][1]===MEET_END;
     const totalFree=free.reduce((s,[a,b])=>s+(b-a),0);
     const score=offc*1000 + totalFree;   // 다 쉬는 날 우선, 그다음 겹치는 시간 길이
     return {k,l,i,free,offc,allDay,totalFree,score};
