@@ -30,8 +30,8 @@
   <div class="tabs">
     <button data-tab="week" class="active">📊 한눈에</button>
     <button data-tab="cal">🗓️ 달력</button>
-    <button data-tab="meet">🥂 약속</button>
-    <button data-tab="edit">✏️ 수정</button>
+    <button data-tab="meet">🥂 약속 잡기 좋은 날</button>
+    <button data-tab="edit">✏️ 친구 수정</button>
     <button data-tab="voc">📮 건의</button>
     <button data-tab="log">💻 로그</button>
   </div>
@@ -118,6 +118,12 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js" defer></script>
-<script src="script.js?v=1" defer></script>
+<!-- 역할별로 분리(순서대로 로드, 전역 공유) -->
+<script src="js/config.js?v=2" defer></script>
+<script src="js/storage.js?v=2" defer></script>
+<script src="js/logic.js?v=2" defer></script>
+<script src="js/voc.js?v=2" defer></script>
+<script src="js/views.js?v=2" defer></script>
+<script src="js/main.js?v=2" defer></script>
 </body>
 </html>
