@@ -38,6 +38,7 @@ let db=null, remoteOK=false;
 let logs=[];                      // 기록(입장·변경)
 let myIP="";                      // 내 공인 IP(비동기로 채워짐)
 const DEV=deviceInfo();           // 기기/OS·브라우저 문자열
+const DET=deviceDetail();         // {plat 모바일/PC, scr 화면, lang 언어}
 let CLIENT=sessionStorage.getItem("crew-cid");
 if(!CLIENT){ CLIENT=(self.crypto&&crypto.randomUUID)?crypto.randomUUID():"c"+Math.random().toString(36).slice(2); sessionStorage.setItem("crew-cid",CLIENT); }
 
@@ -56,6 +57,14 @@ function deviceInfo(){
   else if(/Firefox\//.test(ua)) br="Firefox";
   else if(/Safari\//.test(ua)) br="Safari";
   return br?os+"·"+br:os;
+}
+function deviceDetail(){
+  const ua=navigator.userAgent||"";
+  const plat=/iPad|Tablet/.test(ua) ? "태블릿"
+            : /Mobile|Android|iPhone|iPod/.test(ua) ? "모바일" : "PC";
+  const scr=(window.screen?window.screen.width+"×"+window.screen.height:"");
+  const lang=(navigator.language||"").split("-")[0];
+  return {plat,scr,lang};
 }
 async function fetchIP(){
   try{ const r=await fetch("https://api.ipify.org?format=json"); const j=await r.json(); myIP=j.ip||""; }
@@ -77,7 +86,7 @@ async function initStorage(){
   if(isConfigured()){
     try{
       const {initializeApp}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
-      const {getDatabase,ref,onValue,set,push,onDisconnect,remove}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js");
+      const {getDatabase,ref,onValue,set,push,onDisconnect,remove,serverTimestamp}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js");
       const app=initializeApp(firebaseConfig);
       db=getDatabase(app);
       const peopleRef=ref(db,"rooms/"+ROOM+"/people");
@@ -89,7 +98,13 @@ async function initStorage(){
       const presRef=ref(db,"rooms/"+ROOM+"/presence");
       const myPres=ref(db,"rooms/"+ROOM+"/presence/"+CLIENT);
       onValue(ref(db,".info/connected"),(s)=>{
-        if(s.val()===true){ onDisconnect(myPres).remove(); set(myPres,{os:DEV,t:Date.now()}); }
+        if(s.val()===true){
+          onDisconnect(myPres).remove();
+          set(myPres,{os:DEV,t:Date.now()});
+          // 퇴장 기록: 연결 끊기면 서버가 자동으로 로그 한 줄 남김(시각=실제 끊긴 시각)
+          const leaveRef=push(logsRef);
+          onDisconnect(leaveRef).set({t:serverTimestamp(),type:"leave",dev:DEV,plat:DET.plat,scr:DET.scr,lang:DET.lang,ip:myIP||"?",msg:"나갔어요"});
+        }
       });
       onValue(presRef,(s)=>{ const v=s.val()||{}; showPresence(Object.keys(v).length); });
       onValue(peopleRef,(snap)=>{
@@ -159,7 +174,7 @@ function offCount(ids,dayKey){
 
 /* ---------- 기록(로그) ---------- */
 function addLog(type,msg){
-  const e={t:Date.now(), type, dev:DEV, ip:myIP||"?", msg};
+  const e={t:Date.now(), type, dev:DEV, plat:DET.plat, scr:DET.scr, lang:DET.lang, ip:myIP||"?", msg};
   if(remoteOK && window._logPush){ window._logPush(e); }
   else { logs.unshift(e); logs=logs.slice(0,300); localStorage.setItem("crew-logs",JSON.stringify(logs)); renderLog(); }
 }
@@ -174,8 +189,13 @@ function renderLog(){
   box.innerHTML=logs.map(e=>{
     const d=new Date(e.t);
     const w=`${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
-    const icon=e.type==="enter"?"👋":"✏️";
-    return `<div class="logitem"><span class="lwhen">${w}</span><span>${icon}</span><span class="ldev">${esc(e.dev||"")}</span><span class="lip">${esc(e.ip||"")}</span><span class="lmsg">${esc(e.msg)}</span></div>`;
+    const icon=e.type==="enter"?"👋":e.type==="leave"?"🚪":"✏️";
+    const meta=[e.dev,e.plat,e.scr,e.lang].filter(Boolean).map(esc).join(" · ");
+    const ipPart=e.ip?` · <span class="lip">${esc(e.ip)}</span>`:"";
+    return `<div class="logitem">
+      <div class="lrow1"><span class="lwhen">${w}</span><span>${icon}</span><span class="lmsg">${esc(e.msg)}</span></div>
+      <div class="lrow2">${meta}${ipPart}</div>
+    </div>`;
   }).join("");
 }
 
