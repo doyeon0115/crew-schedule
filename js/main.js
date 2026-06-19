@@ -54,6 +54,18 @@ function applyAdminVisibility(){
   }
 }
 
+/* 마지막 업데이트 자동 표시 (배포된 index.html의 수정 시각) */
+(function showLastUpdate(){
+  const el=document.getElementById("lastUpdate"); if(!el) return;
+  try{
+    const d=new Date(document.lastModified);
+    if(!isNaN(d.getTime())){
+      const s=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+      el.textContent="우리끼리 스케줄 · 마지막 업데이트 "+s;
+    }
+  }catch(e){}
+})();
+
 /* PWA: 서비스워커 등록 (https에서만 동작, file://에선 무시됨) */
 if("serviceWorker" in navigator){
   window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
