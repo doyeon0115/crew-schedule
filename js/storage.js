@@ -1,5 +1,6 @@
 /* ---------- 저장/동기화 ---------- */
 let vocMsgSeen=null;   // 새 건의/댓글/대댓글 감지용
+let meetSeen=null;     // 새 약속 감지용
 function collectVocMsgs(v){   // 모든 글의 고유 id → 내용
   const out={};
   for(const vk in v){
@@ -50,6 +51,11 @@ async function initStorage(){
         : remove(ref(db,"rooms/"+ROOM+"/voc/"+key+"/reactions/"+em+"/"+CLIENT));
       window._replyAdd=(key,ck,r)=>push(ref(db,"rooms/"+ROOM+"/voc/"+key+"/comments/"+ck+"/replies"),r);       // 대댓글 추가
       window._replyDel=(key,ck,rk)=>remove(ref(db,"rooms/"+ROOM+"/voc/"+key+"/comments/"+ck+"/replies/"+rk));  // 대댓글 삭제
+      const meetRef=ref(db,"rooms/"+ROOM+"/meetups");
+      window._meetAdd=(e)=>push(meetRef,e);                                          // 약속 추가
+      window._meetDel=(key)=>remove(ref(db,"rooms/"+ROOM+"/meetups/"+key));          // 약속 삭제
+      window._meetRsvp=(key,r)=>set(ref(db,"rooms/"+ROOM+"/meetups/"+key+"/rsvp/"+CLIENT),r);   // 참석 표시
+      window._meetRsvpDel=(key)=>remove(ref(db,"rooms/"+ROOM+"/meetups/"+key+"/rsvp/"+CLIENT)); // 참석 취소
       // 실시간 접속자(프레즌스): 연결되면 등록, 끊기면 자동 제거
       const presRef=ref(db,"rooms/"+ROOM+"/presence");
       const myPres=ref(db,"rooms/"+ROOM+"/presence/"+CLIENT);
@@ -88,6 +94,17 @@ async function initStorage(){
         vocMsgSeen=msgs;
         renderVoc();
       });
+      onValue(meetRef,(snap)=>{
+        const v=snap.val()||{};
+        meetups=Object.entries(v).map(([key,val])=>({key,...val}));
+        if(meetSeen!==null && document.hidden){
+          Object.keys(v).filter(k=>!meetSeen.includes(k)).forEach(k=>{
+            const it=v[k]; notify("📅 새 약속", dateLabel(it.date)+(it.time?" "+it.time:"")+(it.place?" · "+it.place:""));
+          });
+        }
+        meetSeen=Object.keys(v);
+        renderMeetups();
+      });
       remoteOK=true;
       banner("🟢 실시간 공유 켜짐");
       return;
@@ -102,6 +119,7 @@ async function initStorage(){
   if(saved){ try{data=JSON.parse(saved);}catch(e){} }
   try{ logs=JSON.parse(localStorage.getItem("crew-logs")||"[]"); }catch(e){ logs=[]; }
   try{ voc=JSON.parse(localStorage.getItem("crew-voc")||"[]"); }catch(e){ voc=[]; }
+  try{ meetups=JSON.parse(localStorage.getItem("crew-meet")||"[]"); }catch(e){ meetups=[]; }
 }
 function persist(){
   if(remoteOK&&window._set){ window._set(); }

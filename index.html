@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>우리끼리 스케줄 📅</title>
-<link rel="stylesheet" href="style.css?v=6" />
+<link rel="stylesheet" href="style.css?v=7" />
 <!-- PWA -->
 <link rel="manifest" href="manifest.json?v=1" />
 <meta name="theme-color" content="#0f1115" />
@@ -73,6 +73,25 @@
   <!-- MEET -->
   <section id="tab-meet" style="display:none">
     <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <h2 style="margin:0">📅 잡힌 약속</h2>
+        <button class="btn" id="newMeetBtn">+ 약속 잡기</button>
+      </div>
+      <div id="meetForm" class="meetform hidden">
+        <div class="row" style="gap:8px">
+          <input id="mDate" type="date" style="flex:1">
+          <input id="mTime" type="time" style="flex:1">
+        </div>
+        <input id="mPlace" type="text" placeholder="장소·메모 (선택)" maxlength="40">
+        <div class="row" style="gap:6px;justify-content:flex-end">
+          <button class="btn ghost" id="mCancel">취소</button>
+          <button class="btn" id="mSave">등록</button>
+        </div>
+      </div>
+      <div id="meetups"></div>
+      <small class="note">약속을 잡으면 모두에게 공유·알림돼요. ✅/🤔/❌로 참석 여부를 남겨주세요.</small>
+    </div>
+    <div class="card">
       <h2>누가 모여요?</h2>
       <div id="whoList" class="who"></div>
       <h2 style="margin-top:6px">요일별 다 같이 가능한 시간</h2>
@@ -138,11 +157,11 @@
 
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js" defer></script>
 <!-- 역할별로 분리(순서대로 로드, 전역 공유) -->
-<script src="js/config.js?v=3" defer></script>
-<script src="js/storage.js?v=5" defer></script>
+<script src="js/config.js?v=4" defer></script>
+<script src="js/storage.js?v=6" defer></script>
 <script src="js/logic.js?v=3" defer></script>
 <script src="js/voc.js?v=4" defer></script>
-<script src="js/views.js?v=3" defer></script>
+<script src="js/views.js?v=4" defer></script>
 <script src="js/main.js?v=5" defer></script>
 </body>
 </html>

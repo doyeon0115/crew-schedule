@@ -38,6 +38,7 @@ let db=null, remoteOK=false;
 let logs=[];                      // 기록(입장·변경)
 let logPage=0;                    // 로그 페이지(0부터)
 let voc=[];                       // 건의(의견 게시판)
+let meetups=[];                   // 잡힌 약속(확정)
 const VOC_EMOJI=["👍","🤍","😂","😮","🔥"];   // 반응 이모지
 let vocReplyOpen=new Set();        // 답글 입력창 열린 의견 key
 let myIP="";                      // 내 공인 IP(비동기로 채워짐)

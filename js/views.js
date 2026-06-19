@@ -1,7 +1,7 @@
 /* ---------- 렌더링 ---------- */
 function render(){
   ensureWhoSelection();
-  renderWeek(); renderMeet(); renderEdit(); renderCalendar(); renderLog(); renderVoc();
+  renderWeek(); renderMeet(); renderMeetups(); renderEdit(); renderCalendar(); renderLog(); renderVoc();
 }
 function ids(){   // ord(순서) 기준 정렬, 없으면 키 순서로 폴백
   return Object.keys(data.people).sort((a,b)=>{
@@ -355,3 +355,76 @@ function downloadWeekImage(){
     setTimeout(()=>URL.revokeObjectURL(a.href),1000); },"image/png");
 }
 document.getElementById("dlImg").onclick=downloadWeekImage;
+
+/* ---------- 약속 확정(meetups) ---------- */
+function getMyName(){   // 약속·참석 표시용 내 이름 (한 번 입력 후 기기에 저장)
+  let n=localStorage.getItem("crew-myname")||"";
+  if(!n){ n=(prompt("이름을 입력하세요 (약속·참석 표시용)")||"").trim(); if(n) localStorage.setItem("crew-myname",n); }
+  return n||"익명";
+}
+function saveLocalMeet(){ localStorage.setItem("crew-meet",JSON.stringify(meetups)); }
+function dateLabel(d){
+  if(!d) return "";
+  const [y,m,day]=d.split("-").map(Number);
+  const wd=["일","월","화","수","목","금","토"][new Date(y,m-1,day).getDay()];
+  return `${m}/${day} (${wd})`;
+}
+function toggleMeetForm(show){ const f=document.getElementById("meetForm"); if(f) f.classList.toggle("hidden",!show); }
+function meetAdd(){
+  const date=document.getElementById("mDate").value;
+  if(!date){ alert("날짜를 골라주세요."); return; }
+  const e={t:Date.now(), date, time:document.getElementById("mTime").value||"",
+    place:document.getElementById("mPlace").value.trim(), by:getMyName()};
+  if(remoteOK && window._meetAdd){ window._meetAdd(e); }
+  else { e.key="L"+e.t; meetups.push(e); saveLocalMeet(); renderMeetups(); }
+  document.getElementById("mPlace").value=""; toggleMeetForm(false);
+}
+function meetDel(key){
+  if(remoteOK && window._meetDel){ window._meetDel(key); }
+  else { meetups=meetups.filter(m=>m.key!==key); saveLocalMeet(); renderMeetups(); }
+}
+function meetRsvp(key,status){
+  const m=meetups.find(x=>x.key===key);
+  const cur=((m&&m.rsvp&&m.rsvp[CLIENT])||{}).status;
+  if(cur===status){   // 같은 거 다시 누르면 취소
+    if(remoteOK && window._meetRsvpDel){ window._meetRsvpDel(key); }
+    else { if(m&&m.rsvp){ delete m.rsvp[CLIENT]; saveLocalMeet(); renderMeetups(); } }
+    return;
+  }
+  const r={name:getMyName(), status};
+  if(remoteOK && window._meetRsvp){ window._meetRsvp(key,r); }
+  else { if(!m) return; m.rsvp=m.rsvp||{}; m.rsvp[CLIENT]=r; saveLocalMeet(); renderMeetups(); }
+}
+function renderMeetups(){
+  const box=document.getElementById("meetups");
+  if(!box) return;
+  if(!meetups.length){ box.innerHTML=`<div class="nofree" style="margin-top:8px">아직 잡힌 약속이 없어요. 위 버튼으로 잡아보세요!</div>`; return; }
+  const sorted=[...meetups].sort((a,b)=>(a.date+(a.time||"")).localeCompare(b.date+(b.time||"")));
+  const today=new Date().toISOString().slice(0,10);
+  const names=(arr,emo)=>arr.length?`<div class="rsvp-line">${emo} ${arr.map(r=>esc(r.name||"익명")).join(", ")}</div>`:"";
+  box.innerHTML=sorted.map(m=>{
+    const rsvp=m.rsvp||{}, vals=Object.values(rsvp);
+    const go=vals.filter(r=>r.status==="go"), maybe=vals.filter(r=>r.status==="maybe"), no=vals.filter(r=>r.status==="no");
+    const mine=((rsvp[CLIENT])||{}).status;
+    const past=m.date<today;
+    return `<div class="meetup${past?" past":""}">
+      <div class="meetup-top">
+        <span class="meetup-when">📅 ${dateLabel(m.date)}${m.time?` · ${m.time}`:""}${past?" (지남)":""}</span>
+        <button class="mdel" data-k="${m.key}" title="삭제">🗑</button>
+      </div>
+      ${m.place?`<div class="meetup-place">📍 ${esc(m.place)}</div>`:""}
+      <div class="meetup-by">제안: ${esc(m.by||"익명")}</div>
+      <div class="rsvp-btns">
+        <button class="rsvp${mine==="go"?" on":""}" data-k="${m.key}" data-s="go">✅ 갈게${go.length?` ${go.length}`:""}</button>
+        <button class="rsvp${mine==="maybe"?" on":""}" data-k="${m.key}" data-s="maybe">🤔 미정${maybe.length?` ${maybe.length}`:""}</button>
+        <button class="rsvp${mine==="no"?" on":""}" data-k="${m.key}" data-s="no">❌ 안 가${no.length?` ${no.length}`:""}</button>
+      </div>
+      ${names(go,"✅")}${names(maybe,"🤔")}${names(no,"❌")}
+    </div>`;
+  }).join("");
+  box.querySelectorAll(".rsvp").forEach(b=>b.onclick=()=>meetRsvp(b.dataset.k,b.dataset.s));
+  box.querySelectorAll(".mdel").forEach(b=>b.onclick=()=>{ if(confirm("이 약속을 삭제할까요?")) meetDel(b.dataset.k); });
+}
+document.getElementById("newMeetBtn").onclick=()=>{ toggleMeetForm(true); const d=document.getElementById("mDate"); if(d&&!d.value) d.value=new Date().toISOString().slice(0,10); };
+document.getElementById("mCancel").onclick=()=>toggleMeetForm(false);
+document.getElementById("mSave").onclick=meetAdd;

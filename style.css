@@ -86,6 +86,23 @@ td.we{box-shadow:inset 0 0 0 999px rgba(240,184,110,.06)}  /* 주말 열 살짝 
 .vocbtns{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
 .vocbtns button{background:transparent;border:1px solid var(--line);color:var(--muted);
   border-radius:7px;padding:5px 10px;font-size:12px;cursor:pointer}
+/* 약속 확정(meetups) */
+.meetform{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.meetform.hidden{display:none}
+.meetform input{background:var(--card2);border:1px solid var(--line);color:var(--text);
+  border-radius:9px;padding:9px 10px;font-size:14px;font-family:inherit;min-width:0}
+.meetup{border:1px solid var(--line);border-radius:12px;padding:11px 13px;margin-bottom:8px;background:var(--card2)}
+.meetup.past{opacity:.5}
+.meetup-top{display:flex;justify-content:space-between;align-items:center}
+.meetup-when{font-weight:700;font-size:15px}
+.meetup .mdel{background:transparent;border:0;color:var(--muted);cursor:pointer;font-size:15px}
+.meetup-place{font-size:13px;margin-top:3px}
+.meetup-by{font-size:11.5px;color:var(--muted);margin-top:3px}
+.rsvp-btns{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap}
+.rsvp-btns .rsvp{flex:1;min-width:74px;background:var(--card);border:1px solid var(--line);
+  color:var(--text);border-radius:9px;padding:8px 6px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.rsvp.on{background:rgba(110,168,254,.16);border-color:var(--accent);color:var(--accent)}
+.rsvp-line{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5;word-break:break-word}
 /* 이모지 반응 */
 .rx-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
 .rx{display:inline-flex;align-items:center;gap:4px;background:var(--card);border:1px solid var(--line);
