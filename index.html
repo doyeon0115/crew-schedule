@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>우리끼리 스케줄 📅</title>
-<link rel="stylesheet" href="style.css?v=5" />
+<link rel="stylesheet" href="style.css?v=6" />
 <!-- PWA -->
 <link rel="manifest" href="manifest.json?v=1" />
 <meta name="theme-color" content="#0f1115" />
@@ -97,8 +97,11 @@
   <!-- VOC (건의) -->
   <section id="tab-voc" style="display:none">
     <div class="card">
-      <h2>건의 · 의견 남기기</h2>
-      <div class="vocform">
+      <div class="row" style="justify-content:space-between">
+        <h2 style="margin:0">건의 · 의견 남기기</h2>
+        <button class="btn ghost" id="notifBtn" style="font-size:12px;padding:6px 10px">🔔 알림 받기</button>
+      </div>
+      <div class="vocform" style="margin-top:10px">
         <input id="vocName" type="text" maxlength="12" placeholder="이름 (선택)">
         <textarea id="vocText" rows="2" placeholder="이런 거 수정/추가했으면 좋겠어요!"></textarea>
         <button class="btn" id="vocSubmit">올리기</button>
@@ -125,13 +128,21 @@
   </p>
 </div>
 
+<div id="installBar" class="installbar hidden">
+  <span id="installMsg">📲 홈 화면에 앱으로 추가할 수 있어요</span>
+  <span class="installacts">
+    <button id="installBtn" class="btn">설치</button>
+    <button id="installX" class="ibx" title="닫기">✕</button>
+  </span>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js" defer></script>
 <!-- 역할별로 분리(순서대로 로드, 전역 공유) -->
 <script src="js/config.js?v=3" defer></script>
-<script src="js/storage.js?v=3" defer></script>
+<script src="js/storage.js?v=4" defer></script>
 <script src="js/logic.js?v=3" defer></script>
 <script src="js/voc.js?v=4" defer></script>
 <script src="js/views.js?v=3" defer></script>
-<script src="js/main.js?v=4" defer></script>
+<script src="js/main.js?v=5" defer></script>
 </body>
 </html>

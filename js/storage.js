@@ -1,4 +1,14 @@
 /* ---------- 저장/동기화 ---------- */
+let vocKeysSeen=null;   // 새 건의 감지용
+function notify(title,body){
+  try{
+    if(!("Notification" in window) || Notification.permission!=="granted") return;
+    if(navigator.serviceWorker && navigator.serviceWorker.ready){
+      navigator.serviceWorker.ready.then(r=>r.showNotification(title,{body,icon:"icon.svg",badge:"icon.svg"}))
+        .catch(()=>{ try{new Notification(title,{body,icon:"icon.svg"});}catch(e){} });
+    } else { new Notification(title,{body,icon:"icon.svg"}); }
+  }catch(e){}
+}
 async function initStorage(){
   if(isConfigured()){
     try{
@@ -48,6 +58,13 @@ async function initStorage(){
       onValue(vocRef,(snap)=>{
         const v=snap.val()||{};
         voc=Object.entries(v).map(([key,val])=>({key,...val})).sort((a,b)=>b.t-a.t);
+        const keys=Object.keys(v);
+        if(vocKeysSeen!==null && document.hidden){   // 앱 안 보고 있을 때 새 건의만 알림
+          keys.filter(k=>!vocKeysSeen.includes(k)).forEach(k=>{
+            const it=v[k]; notify("새 건의 📮",(it.who||"누군가")+": "+String(it.text||"").slice(0,60));
+          });
+        }
+        vocKeysSeen=keys;
         renderVoc();
       });
       remoteOK=true;

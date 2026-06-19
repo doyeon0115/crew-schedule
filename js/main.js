@@ -59,6 +59,42 @@ if("serviceWorker" in navigator){
   window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
 }
 
+/* PWA: 설치 유도 배너 */
+let deferredPrompt=null;
+function isStandalone(){ return window.matchMedia("(display-mode: standalone)").matches || navigator.standalone===true; }
+function isIOS(){ return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream; }
+function showInstallBar(html){ const b=document.getElementById("installBar"); if(!b) return; if(html) document.getElementById("installMsg").innerHTML=html; b.classList.remove("hidden"); }
+function hideInstallBar(){ const b=document.getElementById("installBar"); if(b) b.classList.add("hidden"); }
+window.addEventListener("beforeinstallprompt",(e)=>{   // 안드로이드/PC Chrome
+  e.preventDefault(); deferredPrompt=e;
+  if(!localStorage.getItem("crew-noinstall") && !isStandalone()) showInstallBar();
+});
+window.addEventListener("appinstalled",()=>{ hideInstallBar(); deferredPrompt=null; });
+(function setupInstall(){
+  const ibtn=document.getElementById("installBtn"), ibx=document.getElementById("installX");
+  if(ibtn) ibtn.onclick=async()=>{ if(!deferredPrompt) return; deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt=null; hideInstallBar(); };
+  if(ibx) ibx.onclick=()=>{ hideInstallBar(); localStorage.setItem("crew-noinstall","1"); };
+  // iOS는 beforeinstallprompt가 없음 → 설치 방법 안내
+  if(isIOS() && !isStandalone() && !localStorage.getItem("crew-noinstall")){
+    if(ibtn) ibtn.style.display="none";
+    showInstallBar('📲 설치: 공유 <b>⬆️</b> → "홈 화면에 추가"');
+  }
+})();
+
+/* 알림 켜기 버튼 */
+(function setupNotif(){
+  const nb=document.getElementById("notifBtn");
+  if(!nb) return;
+  if(!("Notification" in window)){ nb.style.display="none"; return; }
+  if(Notification.permission==="granted") nb.textContent="🔔 알림 켜짐";
+  else if(Notification.permission==="denied") nb.textContent="🔔 알림 차단됨";
+  nb.onclick=async()=>{
+    if(Notification.permission==="granted"){ nb.textContent="🔔 알림 켜짐"; return; }
+    const p=await Notification.requestPermission();
+    nb.textContent = p==="granted" ? "🔔 알림 켜짐" : "🔔 알림 꺼짐";
+  };
+})();
+
 /* 시작 */
 (async function start(){
   fetchIP().then(applyAdminVisibility);   // IP 확인 후 로그 탭 노출 결정
