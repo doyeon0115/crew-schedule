@@ -1,5 +1,23 @@
 /* ---------- 저장/동기화 ---------- */
-let vocKeysSeen=null;   // 새 건의 감지용
+let vocMsgSeen=null;   // 새 건의/댓글/대댓글 감지용
+function collectVocMsgs(v){   // 모든 글의 고유 id → 내용
+  const out={};
+  for(const vk in v){
+    const item=v[vk]||{};
+    out["v:"+vk]={kind:"건의", who:item.who, text:item.text};
+    const comments=item.comments||{};
+    for(const ck in comments){
+      const c=comments[ck]||{};
+      out["c:"+vk+":"+ck]={kind:"댓글", who:c.who, text:c.text};
+      const replies=c.replies||{};
+      for(const rk in replies){
+        const r=replies[rk]||{};
+        out["r:"+vk+":"+ck+":"+rk]={kind:"대댓글", who:r.who, text:r.text};
+      }
+    }
+  }
+  return out;
+}
 function notify(title,body){
   try{
     if(!("Notification" in window) || Notification.permission!=="granted") return;
@@ -58,13 +76,16 @@ async function initStorage(){
       onValue(vocRef,(snap)=>{
         const v=snap.val()||{};
         voc=Object.entries(v).map(([key,val])=>({key,...val})).sort((a,b)=>b.t-a.t);
-        const keys=Object.keys(v);
-        if(vocKeysSeen!==null && document.hidden){   // 앱 안 보고 있을 때 새 건의만 알림
-          keys.filter(k=>!vocKeysSeen.includes(k)).forEach(k=>{
-            const it=v[k]; notify("새 건의 📮",(it.who||"누군가")+": "+String(it.text||"").slice(0,60));
-          });
+        const msgs=collectVocMsgs(v);
+        if(vocMsgSeen!==null && document.hidden){   // 앱 안 보고 있을 때 새 글만 알림
+          for(const id in msgs){
+            if(!(id in vocMsgSeen)){
+              const m=msgs[id];
+              notify("새 "+m.kind+" 📮",(m.who||"누군가")+": "+String(m.text||"").slice(0,60));
+            }
+          }
         }
-        vocKeysSeen=keys;
+        vocMsgSeen=msgs;
         renderVoc();
       });
       remoteOK=true;
