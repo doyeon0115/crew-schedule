@@ -68,7 +68,10 @@ function applyAdminVisibility(){
 
 /* PWA: 서비스워커 등록 (https에서만 동작, file://에선 무시됨) */
 if("serviceWorker" in navigator){
-  window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+  window.addEventListener("load",()=>navigator.serviceWorker
+    .register("sw.js?v=20260622", {updateViaCache:"none"})
+    .then(reg=>reg.update())
+    .catch(()=>{}));
 }
 
 /* PWA: 설치 유도 배너 */
