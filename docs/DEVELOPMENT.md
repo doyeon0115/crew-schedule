@@ -28,14 +28,15 @@ Spring Boot + Next.js 전면 재설계를 위한 풀스택 개발 계획.
 
 | 영역 | 선택 | 근거 |
 |------|------|------|
-| 언어/프레임워크 | Java 21 · Spring Boot 3.3 | 취업 시장 표준, 생태계 성숙 |
+| 언어/프레임워크 | Java 21 · Spring Boot 3.5 | 취업 시장 표준, 생태계 성숙 |
 | ORM | Spring Data JPA + QueryDSL | 스케줄/약속 복합 조회를 타입 안전하게 |
 | 인증 | Spring Security + JWT + **OAuth2(소셜 로그인)** | 무상태 인증, 카카오/구글 로그인 |
-| 실시간 | WebSocket(STOMP) + Redis Pub/Sub | 채팅·알림, 스케일아웃 대응 |
+| 실시간 | WebSocket(STOMP) + Redis Pub/Sub | 채팅·인앱 알림, 스케일아웃 대응 |
 | 이벤트 | Apache Kafka | 알림 fan-out 비동기·결합도 분리 |
+| 푸시 | **Web Push (VAPID)** + Service Worker | 백그라운드 푸시 (벤더 중립, PWA 친화) |
 | 캐시/락 | Redis (Redisson) | 분산 락, 캐시, 프레즌스 |
-| DB | MySQL 8 + Flyway | 관계형 도메인, 스키마 버전 관리 |
-| 프론트 | Next.js 15 · TS · Tailwind | SSR/PWA, 실시간 UI, 배포 용이 |
+| DB | **PostgreSQL 16** + Flyway | 관계형 도메인, 스키마 버전 관리 |
+| 프론트 | Next.js 16 · TS · Tailwind | SSR/PWA, 실시간 UI, 배포 용이 |
 | 인프라 | Docker Compose · GitHub Actions | 재현 가능한 환경, 자동화 |
 | 테스트 | JUnit5 · Mockito · Testcontainers · k6 | 단위/통합/부하 |
 
@@ -103,6 +104,9 @@ Spring Boot + Next.js 전면 재설계를 위한 풀스택 개발 계획.
 
 **Notification** — 인앱 알림
 - `id, userId, type, title, body, linkUrl, read(boolean), createdAt`
+
+**PushSubscription** — Web Push 구독 정보(기기별)
+- `id, userId, endpoint, p256dhKey, authKey, createdAt` · 제약: `(userId, endpoint)` 유니크
 
 ### 관계 요약
 ```
@@ -190,8 +194,11 @@ User.role = ADMIN → 관리자 시스템 접근
 - STOMP `/ws`, SimpleBroker → **Redis Pub/Sub 릴레이**로 교체(다중 서버 브로드캐스팅).
 - 프레즌스: Redis Set + TTL (레거시 presence 계승).
 
-### 6-3. Kafka 이벤트 알림
-- 도메인 이벤트(`MeetupCreated/Joined`, `PollClosed`, `ScheduleChanged`) → 커밋 후 Kafka 발행 → 알림 컨슈머가 fan-out → 인앱(WebSocket)+웹푸시. 실패는 DLT로 분리.
+### 6-3. Kafka 이벤트 알림 + Web Push
+- 도메인 이벤트(`MeetupCreated/Joined`, `PollClosed`, `ScheduleChanged`) → 커밋 후 Kafka 발행 → 알림 컨슈머가 fan-out. 실패는 DLT로 분리.
+- **전달 분기**: `Notification` 저장 후, 수신자가 **온라인이면 WebSocket(인앱 토스트)**, **오프라인/백그라운드면 Web Push(VAPID)** 로 발송.
+- **Web Push 흐름**: 프론트(Service Worker)가 `PushManager.subscribe(VAPID public key)` → 구독정보를 `PushSubscription`에 저장 → 서버가 Java 라이브러리(`nl.martijndwars:web-push`)로 암호화 발송. 만료 구독(410 Gone)은 정리.
+- `alert()` 같은 브라우저 기본 팝업은 사용하지 않음(인앱은 토스트/알림센터 UI).
 
 ### 6-4. 공통 가용시간 계산 (도메인 서비스)
 레거시 `js/logic.js` 알고리즘을 Java 도메인 서비스로 이관:
@@ -211,7 +218,7 @@ commonFree(members, day) : 멤버별 빈 구간을 reduce로 교집합
 
 | Phase | 내용 | 산출물 |
 |-------|------|--------|
-| **0** | 세팅 | Gradle, Docker Compose(MySQL·Redis·Kafka), GitHub Actions, Swagger |
+| **0** | 세팅 | Gradle, Docker Compose(PostgreSQL·Redis·Kafka), GitHub Actions, Swagger |
 | **1** | 인증·크루 | 이메일/소셜 로그인(JWT+OAuth2), 프로필/탈퇴, 크루 생성/초대/역할 |
 | **2** | 스케줄 | 주간 스케줄 CRUD, 공통 가용시간 계산 + 단위테스트 |
 | **3** | 약속·투표 | 약속 생성, RSVP, 날짜 투표/확정 |
