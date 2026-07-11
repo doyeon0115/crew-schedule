@@ -1,11 +1,13 @@
 "use client";
 
+import { MeetupList } from "@/components/MeetupList";
 import { MeetupPlanner } from "@/components/MeetupPlanner";
 import { useMyCrews } from "@/lib/schedule-hooks";
 
 export default function MeetupPage() {
   const crews = useMyCrews();
-  const crewName = crews.data?.[0]?.name;
+  const activeCrew = crews.data?.[0] ?? null;
+  const crewName = activeCrew?.name;
 
   return (
     <>
@@ -18,7 +20,16 @@ export default function MeetupPage() {
         </p>
       </div>
 
-      <MeetupPlanner />
+      <div className="flex flex-col gap-8">
+        <MeetupPlanner />
+
+        {activeCrew && (
+          <section>
+            <h2 className="mb-3 text-base font-semibold tracking-tight">우리 크루 약속</h2>
+            <MeetupList crewId={activeCrew.id} />
+          </section>
+        )}
+      </div>
     </>
   );
 }

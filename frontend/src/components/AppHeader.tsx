@@ -10,6 +10,7 @@ import { NotificationBell } from "./NotificationBell";
 const TABS = [
   { href: "/", label: "한눈에 보기" },
   { href: "/meetup", label: "약속 잡기" },
+  { href: "/poll", label: "날짜 투표" },
   { href: "/chat", label: "채팅" },
   { href: "/edit", label: "스케줄 수정" },
 ];

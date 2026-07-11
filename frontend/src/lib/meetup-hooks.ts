@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "./api";
-import type { CreateMeetupInput, Meetup } from "./types";
+import type { CreateMeetupInput, Meetup, Rsvp } from "./types";
 
 export function useCrewMeetups(crewId: number | null) {
   return useQuery({
@@ -33,6 +33,48 @@ export function useJoinMeetup(crewId: number | null) {
   return useMutation({
     mutationFn: (meetupId: number) =>
       apiRequest<Meetup>(`/api/meetups/${meetupId}/join`, { method: "POST" }),
+    onSuccess: () => {
+      if (crewId !== null) {
+        qc.invalidateQueries({ queryKey: ["crews", crewId, "meetups"] });
+      }
+    },
+  });
+}
+
+export function useRespondMeetup(crewId: number | null) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ meetupId, rsvp }: { meetupId: number; rsvp: Rsvp }) =>
+      apiRequest<Meetup>(`/api/meetups/${meetupId}/rsvp`, {
+        method: "POST",
+        body: { rsvp },
+      }),
+    onSuccess: () => {
+      if (crewId !== null) {
+        qc.invalidateQueries({ queryKey: ["crews", crewId, "meetups"] });
+      }
+    },
+  });
+}
+
+export function useConfirmMeetup(crewId: number | null) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (meetupId: number) =>
+      apiRequest<Meetup>(`/api/meetups/${meetupId}/confirm`, { method: "POST" }),
+    onSuccess: () => {
+      if (crewId !== null) {
+        qc.invalidateQueries({ queryKey: ["crews", crewId, "meetups"] });
+      }
+    },
+  });
+}
+
+export function useCancelMeetup(crewId: number | null) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (meetupId: number) =>
+      apiRequest<Meetup>(`/api/meetups/${meetupId}/cancel`, { method: "POST" }),
     onSuccess: () => {
       if (crewId !== null) {
         qc.invalidateQueries({ queryKey: ["crews", crewId, "meetups"] });

@@ -218,3 +218,31 @@ export type AdminReportList = {
   reports: AdminReport[];
   pendingCount: number;
 };
+
+export type PollStatus = "OPEN" | "CLOSED";
+
+export type PollCandidate = {
+  id: number;
+  date: string; // "YYYY-MM-DD"
+  startTime: string | null;
+  voteCount: number;
+  voterIds: number[];
+  votedByMe: boolean;
+};
+
+export type Poll = {
+  id: number;
+  crewId: number;
+  creatorId: number;
+  title: string;
+  status: PollStatus;
+  winnerCandidateId: number | null;
+  closedAt: string | null;
+  createdAt: string;
+  candidates: PollCandidate[];
+};
+
+export type CreatePollInput = {
+  title: string;
+  candidates: { date: string; startTime: string | null }[];
+};
