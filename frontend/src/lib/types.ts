@@ -150,3 +150,26 @@ export type ChatHistory = {
   messages: ChatMessage[];
   nextBeforeId: number | null;
 };
+
+export type NotificationType =
+  | "MEETUP_PROPOSED"
+  | "MEETUP_JOINED"
+  | "MEETUP_CONFIRMED"
+  | "POLL_CREATED"
+  | "POLL_CLOSED";
+
+export type NotificationItem = {
+  id: number;
+  type: NotificationType;
+  crewId: number | null;
+  actorId: number | null;
+  payload: string; // JSON string
+  read: boolean;
+  createdAt: string;
+};
+
+export type NotificationPage = {
+  notifications: NotificationItem[];
+  nextBeforeId: number | null;
+  unreadCount: number;
+};

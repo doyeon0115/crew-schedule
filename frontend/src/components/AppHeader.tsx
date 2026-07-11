@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useLogout } from "@/lib/auth-hooks";
 import { useAuthStore } from "@/lib/auth-store";
 import { useMyCrews } from "@/lib/schedule-hooks";
+import { NotificationBell } from "./NotificationBell";
 
 const TABS = [
   { href: "/", label: "한눈에 보기" },
@@ -36,6 +37,7 @@ export function AppHeader() {
         {user && (
           <div className="flex items-center gap-3">
             <span className="text-xs font-medium text-muted">{user.nickname}</span>
+            <NotificationBell />
             <button
               onClick={() => logout.mutate()}
               className="rounded-full border px-3 py-1.5 text-xs font-medium text-muted transition-colors hover:border-primary/40 hover:text-foreground"
