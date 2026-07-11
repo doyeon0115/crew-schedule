@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CREW } from "@/lib/mock";
+import { useLogout } from "@/lib/auth-hooks";
+import { useAuthStore } from "@/lib/auth-store";
+import { useMyCrews } from "@/lib/schedule-hooks";
 
 const TABS = [
   { href: "/", label: "한눈에 보기" },
@@ -12,6 +14,10 @@ const TABS = [
 
 export function AppHeader() {
   const pathname = usePathname();
+  const user = useAuthStore((s) => s.user);
+  const crews = useMyCrews();
+  const crewName = crews.data?.[0]?.name;
+  const logout = useLogout();
 
   return (
     <header className="sticky top-0 z-10 border-b bg-surface/80 backdrop-blur">
@@ -22,19 +28,21 @@ export function AppHeader() {
           </span>
           <div className="leading-tight">
             <p className="text-sm font-semibold tracking-tight">Crew Schedule</p>
-            <p className="text-xs text-muted">{CREW.name}</p>
+            <p className="text-xs text-muted">{crewName ?? "크루 없음"}</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 rounded-full border bg-surface px-3 py-1.5">
-          <span className="relative flex size-2">
-            <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-            <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
-          </span>
-          <span className="text-xs font-medium text-muted">
-            {CREW.online}명 접속
-          </span>
-        </div>
+        {user && (
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-medium text-muted">{user.nickname}</span>
+            <button
+              onClick={() => logout.mutate()}
+              className="rounded-full border px-3 py-1.5 text-xs font-medium text-muted transition-colors hover:border-primary/40 hover:text-foreground"
+            >
+              로그아웃
+            </button>
+          </div>
+        )}
       </div>
 
       <nav className="mx-auto flex max-w-5xl gap-1 px-4">

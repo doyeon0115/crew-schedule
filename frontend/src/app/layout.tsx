@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { AppHeader } from "@/components/AppHeader";
+import { Providers } from "@/lib/providers";
+import { AppShell } from "@/components/AppShell";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -21,15 +22,9 @@ export default function RootLayout({
         href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
       />
       <body className="min-h-full flex flex-col">
-        <div className="flex flex-1 flex-col">
-          <AppHeader />
-          <main className="mx-auto w-full max-w-5xl flex-1 px-5 py-6">
-            {children}
-          </main>
-          <footer className="mx-auto w-full max-w-5xl px-5 py-6 text-center text-xs text-muted">
-            Crew Schedule · 우리끼리 스케줄
-          </footer>
-        </div>
+        <Providers>
+          <AppShell>{children}</AppShell>
+        </Providers>
       </body>
     </html>
   );

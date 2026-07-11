@@ -1,11 +1,29 @@
-import { DAYS, MEMBERS, offCount, RECOMMENDED, type Slot } from "@/lib/mock";
+"use client";
+
+import {
+  DAYS,
+  formatTime,
+  indexByDay,
+  initialOf,
+  keyOf,
+  offCountForDay,
+  tintFor,
+  type DayKey,
+} from "@/lib/ui-helpers";
+import type { CrewScheduleBoard, DayRecommendation, SlotResponse } from "@/lib/types";
 
 const GRID_COLS = "112px repeat(7, minmax(60px, 1fr))";
 
-export function ScheduleGrid() {
+type Props = {
+  board: CrewScheduleBoard;
+  recommended: DayRecommendation | null;
+};
+
+export function ScheduleGrid({ board, recommended }: Props) {
+  const highlightKey: DayKey | null = recommended ? keyOf(recommended.dayOfWeek) : null;
+
   return (
     <section className="overflow-hidden rounded-[var(--radius-app)] border bg-surface shadow-sm">
-      {/* 헤더 + 범례 */}
       <div className="flex items-center justify-between gap-3 border-b px-5 py-3.5">
         <h3 className="text-sm font-semibold tracking-tight">한눈에 보기</h3>
         <div className="flex items-center gap-3 text-xs text-muted">
@@ -14,15 +32,13 @@ export function ScheduleGrid() {
         </div>
       </div>
 
-      {/* 가로 스크롤 래퍼 (모바일) */}
       <div className="overflow-x-auto">
         <div className="min-w-[520px]">
-          {/* 요일 헤더 */}
           <div className="grid" style={{ gridTemplateColumns: GRID_COLS }}>
             <div className="px-4 py-2.5" />
             {DAYS.map((d) => {
-              const rec = d.key === RECOMMENDED.dayKey;
-              const off = offCount(d.key);
+              const rec = d.key === highlightKey;
+              const off = offCountForDay(board.members, d.key);
               return (
                 <div
                   key={d.key}
@@ -44,38 +60,40 @@ export function ScheduleGrid() {
             })}
           </div>
 
-          {/* 멤버별 행 */}
-          {MEMBERS.map((m, i) => (
-            <div
-              key={m.id}
-              className={`grid items-stretch ${i > 0 ? "border-t" : ""}`}
-              style={{ gridTemplateColumns: GRID_COLS }}
-            >
-              <div className="flex items-center gap-2 px-4 py-2">
-                <span
-                  className={`grid size-7 shrink-0 place-items-center rounded-full text-xs font-semibold ${m.tint}`}
-                >
-                  {m.initial}
-                </span>
-                <span className="truncate text-sm font-medium">{m.name}</span>
-              </div>
+          {board.members.map((m, i) => {
+            const week = indexByDay(m.slots);
+            return (
+              <div
+                key={m.userId}
+                className={`grid items-stretch ${i > 0 ? "border-t" : ""}`}
+                style={{ gridTemplateColumns: GRID_COLS }}
+              >
+                <div className="flex items-center gap-2 px-4 py-2">
+                  <span
+                    className={`grid size-7 shrink-0 place-items-center rounded-full text-xs font-semibold ${tintFor(m.userId)}`}
+                  >
+                    {initialOf(m.nickname)}
+                  </span>
+                  <span className="truncate text-sm font-medium">{m.nickname}</span>
+                </div>
 
-              {DAYS.map((d) => (
-                <Cell
-                  key={d.key}
-                  slot={m.sched[d.key]}
-                  highlight={d.key === RECOMMENDED.dayKey}
-                />
-              ))}
-            </div>
-          ))}
+                {DAYS.map((d) => (
+                  <Cell
+                    key={d.key}
+                    slot={week[d.key]}
+                    highlight={d.key === highlightKey}
+                  />
+                ))}
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>
   );
 }
 
-function Cell({ slot, highlight }: { slot: Slot; highlight: boolean }) {
+function Cell({ slot, highlight }: { slot: SlotResponse; highlight: boolean }) {
   return (
     <div
       className={`flex items-center justify-center p-1.5 ${
@@ -88,9 +106,9 @@ function Cell({ slot, highlight }: { slot: Slot; highlight: boolean }) {
         </div>
       ) : (
         <div className="flex h-12 w-full flex-col items-center justify-center rounded-lg bg-work-bg text-[11px] font-medium leading-tight text-work">
-          <span>{slot.start}</span>
+          <span>{formatTime(slot.startTime)}</span>
           <span className="text-work/50">~</span>
-          <span>{slot.end}</span>
+          <span>{formatTime(slot.endTime)}</span>
         </div>
       )}
     </div>
