@@ -246,3 +246,54 @@ export type CreatePollInput = {
   title: string;
   candidates: { date: string; startTime: string | null }[];
 };
+
+export type PostSummary = {
+  id: number;
+  crewId: number;
+  authorId: number;
+  authorNickname: string;
+  title: string;
+  excerpt: string;
+  commentCount: number;
+  createdAt: string;
+};
+
+export type PostListResponse = {
+  posts: PostSummary[];
+  nextBeforeId: number | null;
+};
+
+export type ReactionSummary = {
+  emoji: string;
+  count: number;
+  userIds: number[];
+  myReaction: boolean;
+};
+
+export type CommentNode = {
+  id: number;
+  postId: number;
+  parentCommentId: number | null;
+  authorId: number | null;
+  authorNickname: string;
+  content: string;
+  reactions: ReactionSummary[];
+  replies: CommentNode[];
+  createdAt: string;
+};
+
+export type PostDetail = {
+  id: number;
+  crewId: number;
+  authorId: number;
+  authorNickname: string;
+  title: string;
+  content: string;
+  reactions: ReactionSummary[];
+  comments: CommentNode[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CreatePostInput = { title: string; content: string };
+export type CreateCommentInput = { content: string; parentCommentId?: number | null };

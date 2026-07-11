@@ -11,6 +11,7 @@ const TABS = [
   { href: "/", label: "한눈에 보기" },
   { href: "/meetup", label: "약속 잡기" },
   { href: "/poll", label: "날짜 투표" },
+  { href: "/board", label: "게시판" },
   { href: "/chat", label: "채팅" },
   { href: "/edit", label: "스케줄 수정" },
 ];
@@ -53,9 +54,10 @@ export function AppHeader() {
 
       <nav className="mx-auto flex max-w-5xl gap-1 px-4">
         {[...TABS, ...(user?.role === "ADMIN" ? [ADMIN_TAB] : [])].map((t) => {
-          const active = t.href === "/admin"
-            ? pathname.startsWith("/admin")
-            : pathname === t.href;
+          const active =
+            t.href === "/"
+              ? pathname === "/"
+              : pathname === t.href || pathname.startsWith(`${t.href}/`);
           const isAdmin = t.href === "/admin";
           return (
             <Link
