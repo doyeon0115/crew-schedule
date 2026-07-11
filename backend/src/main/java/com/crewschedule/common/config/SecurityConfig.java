@@ -26,7 +26,10 @@ public class SecurityConfig {
             "/api/auth/signup",
             "/api/auth/login",
             "/api/auth/refresh",
-            "/api/auth/oauth/**"
+            "/api/auth/oauth/**",
+            // STOMP 핸드셰이크 자체는 공개, 실제 인증은 STOMP CONNECT 프레임에서 처리.
+            "/ws/**",
+            "/ws-sockjs/**"
     };
 
     @Bean
