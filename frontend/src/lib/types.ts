@@ -173,3 +173,48 @@ export type NotificationPage = {
   nextBeforeId: number | null;
   unreadCount: number;
 };
+
+export type UserStatus = "ACTIVE" | "SUSPENDED";
+export type ReportTargetType = "POST" | "COMMENT" | "CHAT_MESSAGE" | "USER";
+export type ReportStatus = "PENDING" | "RESOLVED" | "DISMISSED";
+
+export type DashboardStats = {
+  totalUsers: number;
+  activeUsers: number;
+  suspendedUsers: number;
+  adminUsers: number;
+  totalCrews: number;
+  totalMeetups: number;
+  pendingReports: number;
+};
+
+export type AdminUser = {
+  id: number;
+  email: string;
+  nickname: string;
+  role: UserRole;
+  status: UserStatus;
+  createdAt: string;
+};
+
+export type AdminUserList = {
+  users: AdminUser[];
+};
+
+export type AdminReport = {
+  id: number;
+  reporterId: number;
+  targetType: ReportTargetType;
+  targetId: number;
+  reason: string;
+  status: ReportStatus;
+  handledBy: number | null;
+  handledAt: string | null;
+  adminMemo: string | null;
+  createdAt: string;
+};
+
+export type AdminReportList = {
+  reports: AdminReport[];
+  pendingCount: number;
+};

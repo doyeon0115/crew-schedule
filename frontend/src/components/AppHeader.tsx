@@ -14,6 +14,8 @@ const TABS = [
   { href: "/edit", label: "스케줄 수정" },
 ];
 
+const ADMIN_TAB = { href: "/admin", label: "관리자" };
+
 export function AppHeader() {
   const pathname = usePathname();
   const user = useAuthStore((s) => s.user);
@@ -49,15 +51,18 @@ export function AppHeader() {
       </div>
 
       <nav className="mx-auto flex max-w-5xl gap-1 px-4">
-        {TABS.map((t) => {
-          const active = pathname === t.href;
+        {[...TABS, ...(user?.role === "ADMIN" ? [ADMIN_TAB] : [])].map((t) => {
+          const active = t.href === "/admin"
+            ? pathname.startsWith("/admin")
+            : pathname === t.href;
+          const isAdmin = t.href === "/admin";
           return (
             <Link
               key={t.href}
               href={t.href}
               className={`relative px-3.5 py-2.5 text-sm font-medium transition-colors ${
                 active ? "text-primary" : "text-muted hover:text-foreground"
-              }`}
+              } ${isAdmin ? "ml-auto" : ""}`}
             >
               {t.label}
               {active && (
