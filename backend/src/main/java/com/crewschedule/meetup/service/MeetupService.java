@@ -15,6 +15,8 @@ import com.crewschedule.meetup.dto.MeetupDtos.CreateRequest;
 import com.crewschedule.meetup.dto.MeetupDtos.MeetupResponse;
 import com.crewschedule.meetup.repository.MeetupParticipantRepository;
 import com.crewschedule.meetup.repository.MeetupRepository;
+import com.crewschedule.notification.domain.NotificationType;
+import com.crewschedule.notification.service.NotificationDispatcher;
 import com.crewschedule.user.domain.User;
 import java.util.List;
 import java.util.Map;
@@ -35,6 +37,7 @@ public class MeetupService {
     private final CrewService crewService;
     private final JoinStrategyRegistry joinStrategies;
     private final ConcurrencyProperties concurrencyProps;
+    private final NotificationDispatcher notifier;
 
     /**
      * 약속을 제안한다.
@@ -79,13 +82,38 @@ public class MeetupService {
                     return participantRepository.save(p);
                 })
                 .toList();
+
+        // 크루 전원에게 알림 (창시자 제외)
+        notifier.dispatchToCrew(
+                NotificationType.MEETUP_PROPOSED,
+                crewId,
+                userId,
+                Set.of(userId),
+                Map.of(
+                        "meetupId", meetup.getId(),
+                        "title", meetup.getTitle(),
+                        "meetDate", meetup.getMeetDate().toString(),
+                        "capacity", request.capacity() == null ? -1 : request.capacity()));
+
         return MeetupResponse.of(meetup, saved);
     }
 
     /** 선착순 참여. 실제 락 로직은 {@link com.crewschedule.meetup.concurrency.JoinStrategy} 구현체가 담당. */
     public MeetupResponse join(Long userId, Long meetupId) {
         joinStrategies.get(concurrencyProps.joinStrategy()).join(meetupId, userId);
-        return toResponse(getMeetup(meetupId));
+        Meetup meetup = getMeetup(meetupId);
+        // 창시자에게 참여 알림
+        notifier.dispatchToUser(
+                NotificationType.MEETUP_JOINED,
+                meetup.getCreator().getId(),
+                meetup.getCrew().getId(),
+                userId,
+                Map.of(
+                        "meetupId", meetupId,
+                        "title", meetup.getTitle(),
+                        "currentParticipants", meetup.getCurrentParticipants(),
+                        "capacity", meetup.getCapacity() == null ? -1 : meetup.getCapacity()));
+        return toResponse(meetup);
     }
 
     /** 크루의 약속 목록(참여자·RSVP 포함). */
@@ -120,6 +148,24 @@ public class MeetupService {
     public MeetupResponse confirm(Long userId, Long meetupId) {
         Meetup meetup = getMeetupForCreator(userId, meetupId);
         meetup.confirm();
+
+        // 창시자를 제외한 참여자 전원에게 확정 알림
+        List<Long> recipients = participantRepository
+                .findAllWithUserByMeetupIdIn(List.of(meetupId)).stream()
+                .map(p -> p.getUser().getId())
+                .filter(id -> !id.equals(userId))
+                .toList();
+        notifier.dispatchToUsers(
+                NotificationType.MEETUP_CONFIRMED,
+                recipients,
+                meetup.getCrew().getId(),
+                userId,
+                Map.of(
+                        "meetupId", meetupId,
+                        "title", meetup.getTitle(),
+                        "meetDate", meetup.getMeetDate().toString(),
+                        "startTime", meetup.getStartTime().toString()));
+
         return toResponse(meetup);
     }
 

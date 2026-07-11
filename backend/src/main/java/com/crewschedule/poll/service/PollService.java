@@ -11,6 +11,8 @@ import com.crewschedule.poll.dto.PollDtos.CandidateInput;
 import com.crewschedule.poll.dto.PollDtos.CandidateSummary;
 import com.crewschedule.poll.dto.PollDtos.CreatePollRequest;
 import com.crewschedule.poll.dto.PollDtos.PollResponse;
+import com.crewschedule.notification.domain.NotificationType;
+import com.crewschedule.notification.service.NotificationDispatcher;
 import com.crewschedule.poll.repository.DatePollRepository;
 import com.crewschedule.poll.repository.PollCandidateRepository;
 import com.crewschedule.poll.repository.PollVoteRepository;
@@ -21,6 +23,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -42,6 +45,7 @@ public class PollService {
     private final UserRepository userRepository;
     private final CrewService crewService;
     private final EntityManager em;
+    private final NotificationDispatcher notifier;
 
     @Transactional
     public PollResponse create(Long userId, Long crewId, CreatePollRequest request) {
@@ -66,6 +70,16 @@ public class PollService {
                         .startTime(input.startTime())
                         .build()))
                 .toList();
+
+        notifier.dispatchToCrew(
+                NotificationType.POLL_CREATED,
+                crewId,
+                userId,
+                Set.of(userId),
+                Map.of(
+                        "pollId", poll.getId(),
+                        "title", poll.getTitle(),
+                        "candidateCount", candidates.size()));
 
         return PollResponse.of(poll, candidates, buildSummaries(candidates, List.of(), userId));
     }
@@ -139,6 +153,18 @@ public class PollService {
                         .thenComparing((PollCandidate c) -> c.getCandidateDate(), Comparator.reverseOrder()))
                 .orElseThrow(() -> new BusinessException(ErrorCode.POLL_HAS_NO_VOTES));
         poll.close(winner.getId());
+
+        notifier.dispatchToCrew(
+                NotificationType.POLL_CLOSED,
+                poll.getCrew().getId(),
+                userId,
+                Set.of(userId),
+                Map.of(
+                        "pollId", poll.getId(),
+                        "title", poll.getTitle(),
+                        "winnerDate", winner.getCandidateDate().toString(),
+                        "winnerCandidateId", winner.getId()));
+
         return loadPoll(poll, userId);
     }
 

@@ -31,8 +31,11 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry registry) {
-        registry.enableSimpleBroker("/topic");
+        // /topic — 크루 채팅 브로드캐스트
+        // /queue — 개인 큐(알림). convertAndSendToUser는 내부적으로 /user/{principal}/queue/... 로 라우팅
+        registry.enableSimpleBroker("/topic", "/queue");
         registry.setApplicationDestinationPrefixes("/app");
+        registry.setUserDestinationPrefix("/user");
     }
 
     @Override
