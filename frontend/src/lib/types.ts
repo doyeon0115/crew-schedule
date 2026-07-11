@@ -122,6 +122,8 @@ export type Meetup = {
   location: string | null;
   memo: string | null;
   status: MeetupStatus;
+  capacity: number | null;
+  currentParticipants: number;
   participants: MeetupParticipant[];
 };
 
@@ -132,4 +134,5 @@ export type CreateMeetupInput = {
   location?: string | null;
   memo?: string | null;
   participantUserIds?: number[];
+  capacity?: number | null;
 };

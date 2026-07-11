@@ -27,3 +27,16 @@ export function useProposeMeetup(crewId: number | null) {
     },
   });
 }
+
+export function useJoinMeetup(crewId: number | null) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (meetupId: number) =>
+      apiRequest<Meetup>(`/api/meetups/${meetupId}/join`, { method: "POST" }),
+    onSuccess: () => {
+      if (crewId !== null) {
+        qc.invalidateQueries({ queryKey: ["crews", crewId, "meetups"] });
+      }
+    },
+  });
+}
