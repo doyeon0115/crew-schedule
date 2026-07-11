@@ -46,7 +46,14 @@ public enum ErrorCode {
     POLL_HAS_NO_VOTES(HttpStatus.BAD_REQUEST, "득표한 후보가 없어 마감할 수 없습니다."),
     POLL_NEEDS_CANDIDATES(HttpStatus.BAD_REQUEST, "후보 날짜는 하나 이상 있어야 합니다."),
     NOT_POLL_CREATOR(HttpStatus.FORBIDDEN, "투표 생성자만 할 수 있는 작업입니다."),
-    DUPLICATE_POLL_VOTE(HttpStatus.CONFLICT, "이미 투표한 후보입니다.");
+    DUPLICATE_POLL_VOTE(HttpStatus.CONFLICT, "이미 투표한 후보입니다."),
+
+    // 게시판
+    POST_NOT_FOUND(HttpStatus.NOT_FOUND, "게시글을 찾을 수 없습니다."),
+    COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "댓글을 찾을 수 없습니다."),
+    NOT_POST_AUTHOR(HttpStatus.FORBIDDEN, "글 작성자만 할 수 있는 작업입니다."),
+    NOT_COMMENT_AUTHOR(HttpStatus.FORBIDDEN, "댓글 작성자만 할 수 있는 작업입니다."),
+    COMMENT_TARGET_MISMATCH(HttpStatus.BAD_REQUEST, "다른 게시글의 댓글에는 답할 수 없습니다.");
 
     private final HttpStatus status;
     private final String message;
