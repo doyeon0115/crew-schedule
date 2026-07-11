@@ -40,13 +40,29 @@ public class User extends BaseTimeEntity {
     @Column(nullable = false, length = 20)
     private UserRole role;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private AuthProvider provider;
+
+    @Column(length = 100)
+    private String providerId;
+
     @Builder
-    private User(String email, String password, String nickname, String profileImageUrl, UserRole role) {
+    private User(
+            String email,
+            String password,
+            String nickname,
+            String profileImageUrl,
+            UserRole role,
+            AuthProvider provider,
+            String providerId) {
         this.email = email;
         this.password = password;
         this.nickname = nickname;
         this.profileImageUrl = profileImageUrl;
         this.role = role != null ? role : UserRole.USER;
+        this.provider = provider != null ? provider : AuthProvider.LOCAL;
+        this.providerId = providerId;
     }
 
     public void updateProfile(String nickname, String profileImageUrl) {
@@ -56,5 +72,9 @@ public class User extends BaseTimeEntity {
 
     public void changePassword(String encodedPassword) {
         this.password = encodedPassword;
+    }
+
+    public boolean isSocial() {
+        return provider != AuthProvider.LOCAL;
     }
 }

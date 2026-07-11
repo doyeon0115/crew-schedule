@@ -1,5 +1,8 @@
 package com.crewschedule.common.config;
 
+import com.crewschedule.auth.jwt.JwtAuthenticationFilter;
+import com.crewschedule.auth.security.RestAccessDeniedHandler;
+import com.crewschedule.auth.security.RestAuthenticationEntryPoint;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -8,12 +11,9 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-/**
- * 무상태(JWT) 보안 설정.
- * <p>Phase 0에서는 부트스트랩을 위해 대부분 permitAll 이며,
- * Phase 1에서 JWT 인증 필터와 함께 실제 인가 규칙으로 잠근다.
- */
+/** 무상태(JWT) 보안 설정. 인증은 {@link JwtAuthenticationFilter}, 401/403은 REST JSON으로 응답. */
 @Configuration
 public class SecurityConfig {
 
@@ -22,21 +22,33 @@ public class SecurityConfig {
             "/actuator/**",
             "/swagger-ui/**",
             "/swagger-ui.html",
-            "/v3/api-docs/**"
+            "/v3/api-docs/**",
+            "/api/auth/signup",
+            "/api/auth/login",
+            "/api/auth/refresh",
+            "/api/auth/oauth/**"
     };
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(
+            HttpSecurity http,
+            JwtAuthenticationFilter jwtFilter,
+            RestAuthenticationEntryPoint entryPoint,
+            RestAccessDeniedHandler accessDeniedHandler) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
+                .logout(AbstractHttpConfigurer::disable)
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(eh -> eh
+                        .authenticationEntryPoint(entryPoint)
+                        .accessDeniedHandler(accessDeniedHandler))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(PUBLIC_PATHS).permitAll()
-                        // TODO(Phase 1): 아래를 authenticated()로 잠그고 JWT 필터 추가
-                        .anyRequest().permitAll()
-                );
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .anyRequest().authenticated())
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 
