@@ -5,6 +5,8 @@ import com.crewschedule.crew.domain.Crew;
 import com.crewschedule.user.domain.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -42,16 +44,33 @@ public class Post extends BaseTimeEntity {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private ContentStatus status;
+
     @Builder
     private Post(Crew crew, User author, String title, String content) {
         this.crew = crew;
         this.author = author;
         this.title = title;
         this.content = content;
+        this.status = ContentStatus.ACTIVE;
     }
 
     public void update(String title, String content) {
         this.title = title;
         this.content = content;
+    }
+
+    public boolean isHidden() {
+        return status == ContentStatus.HIDDEN;
+    }
+
+    public void hide() {
+        this.status = ContentStatus.HIDDEN;
+    }
+
+    public void restore() {
+        this.status = ContentStatus.ACTIVE;
     }
 }

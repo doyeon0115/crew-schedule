@@ -47,6 +47,10 @@ public class User extends BaseTimeEntity {
     @Column(length = 100)
     private String providerId;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private UserStatus status;
+
     @Builder
     private User(
             String email,
@@ -63,6 +67,7 @@ public class User extends BaseTimeEntity {
         this.role = role != null ? role : UserRole.USER;
         this.provider = provider != null ? provider : AuthProvider.LOCAL;
         this.providerId = providerId;
+        this.status = UserStatus.ACTIVE;
     }
 
     public void updateProfile(String nickname, String profileImageUrl) {
@@ -76,5 +81,25 @@ public class User extends BaseTimeEntity {
 
     public boolean isSocial() {
         return provider != AuthProvider.LOCAL;
+    }
+
+    public boolean isSuspended() {
+        return status == UserStatus.SUSPENDED;
+    }
+
+    public void suspend() {
+        this.status = UserStatus.SUSPENDED;
+    }
+
+    public void reactivate() {
+        this.status = UserStatus.ACTIVE;
+    }
+
+    public void promoteToAdmin() {
+        this.role = UserRole.ADMIN;
+    }
+
+    public void demoteToUser() {
+        this.role = UserRole.USER;
     }
 }

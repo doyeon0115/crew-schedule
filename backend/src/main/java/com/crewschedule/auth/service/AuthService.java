@@ -56,6 +56,9 @@ public class AuthService {
         if (!passwordEncoder.matches(request.password(), user.getPassword())) {
             throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
         }
+        if (user.isSuspended()) {
+            throw new BusinessException(ErrorCode.ACCOUNT_SUSPENDED);
+        }
         return issueTokens(user);
     }
 
@@ -78,6 +81,9 @@ public class AuthService {
         refreshTokenRepository.delete(stored);
         User user = userRepository.findById(principal.userId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+        if (user.isSuspended()) {
+            throw new BusinessException(ErrorCode.ACCOUNT_SUSPENDED);
+        }
         return issueTokens(user);
     }
 

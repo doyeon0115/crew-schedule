@@ -53,7 +53,12 @@ public enum ErrorCode {
     COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "댓글을 찾을 수 없습니다."),
     NOT_POST_AUTHOR(HttpStatus.FORBIDDEN, "글 작성자만 할 수 있는 작업입니다."),
     NOT_COMMENT_AUTHOR(HttpStatus.FORBIDDEN, "댓글 작성자만 할 수 있는 작업입니다."),
-    COMMENT_TARGET_MISMATCH(HttpStatus.BAD_REQUEST, "다른 게시글의 댓글에는 답할 수 없습니다.");
+    COMMENT_TARGET_MISMATCH(HttpStatus.BAD_REQUEST, "다른 게시글의 댓글에는 답할 수 없습니다."),
+
+    // 관리자·신고
+    REPORT_NOT_FOUND(HttpStatus.NOT_FOUND, "신고를 찾을 수 없습니다."),
+    ALREADY_HANDLED(HttpStatus.BAD_REQUEST, "이미 처리된 신고입니다."),
+    ACCOUNT_SUSPENDED(HttpStatus.FORBIDDEN, "정지된 계정입니다. 관리자에게 문의하세요.");
 
     private final HttpStatus status;
     private final String message;

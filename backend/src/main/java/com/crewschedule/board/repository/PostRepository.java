@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 public interface PostRepository extends JpaRepository<Post, Long> {
 
     @Query("select p from Post p join fetch p.author where p.crew.id = :crewId "
+            + "and p.status = com.crewschedule.board.domain.ContentStatus.ACTIVE "
             + "and (:beforeId is null or p.id < :beforeId) order by p.id desc")
     List<Post> findPage(
             @Param("crewId") Long crewId, @Param("beforeId") Long beforeId, Pageable pageable);

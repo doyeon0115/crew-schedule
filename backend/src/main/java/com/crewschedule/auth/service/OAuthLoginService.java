@@ -45,6 +45,9 @@ public class OAuthLoginService {
         OAuthUserInfo info = client.fetchUser(authorizationCode);
         User user = userRepository.findByProviderAndProviderId(info.provider(), info.providerId())
                 .orElseGet(() -> createSocialUser(info));
+        if (user.isSuspended()) {
+            throw new BusinessException(ErrorCode.ACCOUNT_SUSPENDED);
+        }
         return authService.issueTokens(user);
     }
 

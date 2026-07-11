@@ -93,6 +93,10 @@ public class BoardService {
     public PostDetail getPost(Long userId, Long postId) {
         Post post = loadPost(postId);
         crewService.getCrewForMember(userId, post.getCrew().getId());
+        if (post.isHidden()) {
+            // 숨김 처리된 게시글은 일반 유저에게 not found. 관리자는 admin 도구로 봐야 함.
+            throw new BusinessException(ErrorCode.POST_NOT_FOUND);
+        }
 
         List<Reaction> postReactions = reactionRepository.findAllByPostIdWithUser(postId);
         List<ReactionSummary> postReactionSummaries = summarizeReactions(postReactions, userId);
@@ -306,7 +310,23 @@ public class BoardService {
         }
         List<ReactionSummary> reactionSummaries =
                 summarizeReactions(reactionsByComment.getOrDefault(comment.getId(), List.of()), viewerId);
-        CommentResponse response = CommentResponse.from(comment, reactionSummaries, childResponses);
+
+        // HIDDEN 댓글은 트리 위상은 유지하되 본문/반응/작성자를 마스킹.
+        CommentResponse response;
+        if (comment.isHidden()) {
+            response = new CommentResponse(
+                    comment.getId(),
+                    comment.getPost().getId(),
+                    comment.getParent() == null ? null : comment.getParent().getId(),
+                    null,
+                    "(숨김)",
+                    "(관리자에 의해 숨겨진 댓글)",
+                    List.of(),
+                    childResponses,
+                    comment.getCreatedAt());
+        } else {
+            response = CommentResponse.from(comment, reactionSummaries, childResponses);
+        }
         cache.put(comment.getId(), response);
         return response;
     }
