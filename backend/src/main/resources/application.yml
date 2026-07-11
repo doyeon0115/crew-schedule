@@ -34,8 +34,14 @@ spring:
       group-id: crew-schedule
       auto-offset-reset: latest
 
-# JWT / OAuth2 (Phase 1)
+# Phase 4 - 선착순 참여 락 전략
+# NAIVE(레이스 조건 시연) | OPTIMISTIC | PESSIMISTIC | DISTRIBUTED_LOCK | REDIS_ATOMIC
 app:
+  concurrency:
+    join-strategy: ${JOIN_STRATEGY:PESSIMISTIC}
+    optimistic-retry-max: 5
+
+# JWT / OAuth2 (Phase 1)
   jwt:
     secret: ${JWT_SECRET:local-dev-secret-change-me-please-32bytes-min}
     access-token-validity-seconds: 3600

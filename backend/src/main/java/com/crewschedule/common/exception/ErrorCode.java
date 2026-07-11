@@ -33,6 +33,10 @@ public enum ErrorCode {
     MEETUP_NOT_FOUND(HttpStatus.NOT_FOUND, "약속을 찾을 수 없습니다."),
     NOT_MEETUP_PARTICIPANT(HttpStatus.FORBIDDEN, "약속 참여 대상이 아닙니다."),
     NOT_MEETUP_CREATOR(HttpStatus.FORBIDDEN, "약속 생성자만 할 수 있는 작업입니다."),
+    MEETUP_FULL(HttpStatus.CONFLICT, "정원이 마감되었습니다."),
+    ALREADY_JOINED(HttpStatus.CONFLICT, "이미 참여한 약속입니다."),
+    MEETUP_NOT_JOINABLE(HttpStatus.BAD_REQUEST, "선착순으로 참여 가능한 약속이 아닙니다."),
+    JOIN_LOCK_FAILED(HttpStatus.SERVICE_UNAVAILABLE, "잠시 후 다시 시도해 주세요."),
 
     // 투표
     POLL_NOT_FOUND(HttpStatus.NOT_FOUND, "투표를 찾을 수 없습니다."),

@@ -18,7 +18,9 @@ public final class MeetupDtos {
     }
 
     /**
-     * 약속 생성 요청. {@code participantUserIds}가 비어 있으면 크루 전원을 초대한다.
+     * 약속 생성 요청.
+     * <p>{@code participantUserIds}가 비어 있으면 크루 전원을 초대한다.
+     * <p>{@code capacity}가 null이면 무제한(초대형), 값이 있으면 선착순 참여 대상이 된다.
      */
     public record CreateRequest(
             @NotBlank(message = "약속 제목은 필수입니다.") @Size(max = 100) String title,
@@ -26,7 +28,8 @@ public final class MeetupDtos {
             @NotNull LocalTime startTime,
             @Size(max = 200) String location,
             @Size(max = 500) String memo,
-            List<Long> participantUserIds) {
+            List<Long> participantUserIds,
+            Integer capacity) {
     }
 
     public record RsvpRequest(@NotNull Rsvp rsvp) {
@@ -52,6 +55,8 @@ public final class MeetupDtos {
             String location,
             String memo,
             MeetupStatus status,
+            Integer capacity,
+            int currentParticipants,
             List<ParticipantResponse> participants) {
 
         public static MeetupResponse of(Meetup meetup, List<MeetupParticipant> participants) {
@@ -65,6 +70,8 @@ public final class MeetupDtos {
                     meetup.getLocation(),
                     meetup.getMemo(),
                     meetup.getStatus(),
+                    meetup.getCapacity(),
+                    meetup.getCurrentParticipants(),
                     participants.stream().map(ParticipantResponse::from).toList());
         }
     }

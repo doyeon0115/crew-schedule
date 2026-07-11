@@ -50,6 +50,15 @@ public class MeetupController {
         return ApiResponse.ok(meetupService.respond(userId, meetupId, request.rsvp()));
     }
 
+    @Operation(
+            summary = "선착순 참여",
+            description = "capacity가 설정된 약속에 참여한다. 락 전략은 app.concurrency.join-strategy로 결정.")
+    @PostMapping("/meetups/{meetupId}/join")
+    public ApiResponse<MeetupResponse> join(
+            @CurrentUserId Long userId, @PathVariable Long meetupId) {
+        return ApiResponse.ok(meetupService.join(userId, meetupId));
+    }
+
     @Operation(summary = "약속 확정 (생성자만)")
     @PostMapping("/meetups/{meetupId}/confirm")
     public ApiResponse<MeetupResponse> confirm(@CurrentUserId Long userId, @PathVariable Long meetupId) {

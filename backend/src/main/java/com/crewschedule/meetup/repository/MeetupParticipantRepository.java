@@ -14,4 +14,8 @@ public interface MeetupParticipantRepository extends JpaRepository<MeetupPartici
 
     @Query("select p from MeetupParticipant p join fetch p.user where p.meetup.id in :meetupIds order by p.id")
     List<MeetupParticipant> findAllWithUserByMeetupIdIn(@Param("meetupIds") Collection<Long> meetupIds);
+
+    boolean existsByMeetupIdAndUserId(Long meetupId, Long userId);
+
+    long countByMeetupId(Long meetupId);
 }

@@ -114,7 +114,7 @@ class CoreApiServiceIntegrationTest {
 
         // 4. 약속 제안(전원 초대) → RSVP → 확정
         MeetupResponse meetup = meetupService.propose(jiyoungId, crew.id(), new CreateRequest(
-                "목요일 저녁 모임", thursday, LocalTime.of(19, 0), "강남", null, null));
+                "목요일 저녁 모임", thursday, LocalTime.of(19, 0), "강남", null, null, null));
         assertThat(meetup.participants()).hasSize(2);
         assertThat(meetup.status()).isEqualTo(MeetupStatus.PROPOSED);
 
@@ -152,7 +152,7 @@ class CoreApiServiceIntegrationTest {
         // 생성자가 아니면 확정 불가
         crewService.join(yujinId, crew.inviteCode());
         MeetupResponse meetup = meetupService.propose(jiyoungId, crew.id(), new CreateRequest(
-                "모임", LocalDate.of(2026, 8, 1), LocalTime.of(19, 0), null, null, null));
+                "모임", LocalDate.of(2026, 8, 1), LocalTime.of(19, 0), null, null, null, null));
         assertThatThrownBy(() -> meetupService.confirm(yujinId, meetup.id()))
                 .isInstanceOf(BusinessException.class)
                 .extracting(e -> ((BusinessException) e).getErrorCode())
