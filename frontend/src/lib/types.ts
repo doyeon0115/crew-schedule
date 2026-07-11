@@ -136,3 +136,17 @@ export type CreateMeetupInput = {
   participantUserIds?: number[];
   capacity?: number | null;
 };
+
+export type ChatMessage = {
+  id: number;
+  crewId: number;
+  senderId: number;
+  senderNickname: string;
+  content: string;
+  sentAt: string; // ISO
+};
+
+export type ChatHistory = {
+  messages: ChatMessage[];
+  nextBeforeId: number | null;
+};

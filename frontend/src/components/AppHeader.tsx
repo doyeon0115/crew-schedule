@@ -9,6 +9,7 @@ import { useMyCrews } from "@/lib/schedule-hooks";
 const TABS = [
   { href: "/", label: "한눈에 보기" },
   { href: "/meetup", label: "약속 잡기" },
+  { href: "/chat", label: "채팅" },
   { href: "/edit", label: "스케줄 수정" },
 ];
 
