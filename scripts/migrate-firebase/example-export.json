@@ -1,0 +1,62 @@
+{
+  "people": {
+    "p1": {
+      "name": "지영",
+      "sched": {
+        "mon": { "off": false, "start": "09:00", "end": "18:00" },
+        "tue": { "off": false, "start": "09:00", "end": "18:00" },
+        "wed": { "off": false, "start": "09:00", "end": "18:00" },
+        "thu": { "off": true, "start": "09:00", "end": "18:00" },
+        "fri": { "off": false, "start": "09:00", "end": "18:00" },
+        "sat": { "off": true, "start": "09:00", "end": "18:00" },
+        "sun": { "off": true, "start": "09:00", "end": "18:00" }
+      }
+    },
+    "p2": {
+      "name": "유진",
+      "sched": {
+        "mon": { "off": true, "start": "09:00", "end": "18:00" },
+        "tue": { "off": false, "start": "09:00", "end": "20:30" },
+        "wed": { "off": false, "start": "09:00", "end": "20:30" },
+        "thu": { "off": false, "start": "09:00", "end": "17:00" },
+        "fri": { "off": false, "start": "09:00", "end": "20:30" },
+        "sat": { "off": false, "start": "09:00", "end": "20:30" },
+        "sun": { "off": true, "start": "09:00", "end": "18:00" }
+      }
+    }
+  },
+  "voc": {
+    "-N1": {
+      "t": 1725000000000,
+      "who": "지영",
+      "text": "이번주 목요일 저녁에 만나면 어떨까요?",
+      "comments": {
+        "c1": {
+          "who": "유진",
+          "text": "좋아요! 7시 이후 가능해요",
+          "replies": {
+            "r1": {
+              "who": "지영",
+              "text": "그럼 7시로 확정!"
+            }
+          }
+        }
+      }
+    }
+  },
+  "meetups": {
+    "m1": {
+      "t": 1725000000000,
+      "date": "2026-08-20",
+      "time": "19:00",
+      "place": "홍대",
+      "by": "지영",
+      "rsvp": {
+        "session-a": { "name": "지영", "status": "go" },
+        "session-b": { "name": "유진", "status": "maybe" }
+      }
+    }
+  },
+  "logs": {},
+  "presence": {}
+}
